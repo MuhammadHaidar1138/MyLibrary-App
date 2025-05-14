@@ -11,21 +11,25 @@ export default function MembersIndex() {
     function fetchData() {
         axios.get(`${API_URL}member`, {
             headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-            Accept: 'application/json'
-        }
+                Authorization: `Bearer ${localStorage.getItem('token')}`,
+                Accept: 'application/json'
+            }
         })
-            .then((res) => {
-                setMembers(res.data);
-                
-            })
-            .catch(err => {
-                if (err.status === 401) {
-                    localStorage.removeItem("token");
-                    navigate("/login");
-                }
-                setError(err.response.data);
-            });
+        .then((res) => {
+            setMembers(res.data);
+        })
+        .catch(err => {
+            if (err.response && err.response.status === 401) {
+                localStorage.removeItem("token");
+                navigate("/login");
+            }
+            setMembers([]);
+            setError(
+                err.response?.data?.message ||
+                err.response?.data?.error ||
+                "Failed to fetch members."
+            );
+        });
     }
 
     useEffect(() => {
@@ -33,60 +37,64 @@ export default function MembersIndex() {
     }, []);
 
     return (
-        <div className="p-6 bg-gray-50 min-h-screen">
-            {/* Header */}
+        <div className="p-6 min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-700">
+            {/* Error Alert */}
+            {error && (
+                <div className="bg-red-500 text-white p-3 rounded-lg mb-4 shadow-lg">
+                    {error}
+                </div>
+            )}
             <div className="text-center mb-8">
-                <h1 className="text-4xl font-extrabold text-gray-800">Members Directory</h1>
-                <p className="text-gray-500 mt-2">A clean and premium list of all registered members.</p>
+                <h1 className="text-4xl font-extrabold text-white drop-shadow-lg">Members Directory</h1>
+                <p className="text-gray-300 mt-2">A clean and premium list of all registered members.</p>
             </div>
 
-            {/* Table */}
-            <div className="overflow-hidden rounded-lg shadow-lg bg-white">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-100">
+            <div className="overflow-x-auto rounded-xl shadow-2xl bg-gray-800 border border-gray-700">
+                <table className="min-w-full divide-y divide-gray-700">
+                    <thead className="bg-gradient-to-r from-blue-900 via-blue-800 to-blue-700">
                         <tr>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                No
+                            <th className="px-6 py-3 text-left text-xs font-bold text-blue-200 uppercase tracking-wider">
+                                <span className="bg-blue-700 px-2 py-1 rounded-full">No</span>
                             </th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                KTP Number
+                            <th className="px-6 py-3 text-left text-xs font-bold text-blue-200 uppercase tracking-wider">
+                                <span className="bg-blue-700 px-2 py-1 rounded-full">KTP Number</span>
                             </th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Name
+                            <th className="px-6 py-3 text-left text-xs font-bold text-blue-200 uppercase tracking-wider">
+                                <span className="bg-blue-700 px-2 py-1 rounded-full">Name</span>
                             </th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Address
+                            <th className="px-6 py-3 text-left text-xs font-bold text-blue-200 uppercase tracking-wider">
+                                <span className="bg-blue-700 px-2 py-1 rounded-full">Address</span>
                             </th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Date of Birth
+                            <th className="px-6 py-3 text-left text-xs font-bold text-blue-200 uppercase tracking-wider">
+                                <span className="bg-blue-700 px-2 py-1 rounded-full">Date of Birth</span>
                             </th>
                         </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                        {members.map((member, index) => (
-                            <tr key={member.id} className="hover:bg-gray-50">
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{index + 1}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{member.no_ktp}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{member.nama}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{member.alamat}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{member.tgl_lahir}</td>
+                    <tbody>
+                        {members.length === 0 ? (
+                            <tr>
+                                <td colSpan={5} className="text-center py-8 text-gray-400">
+                                    No members found.
+                                </td>
                             </tr>
-                        ))}
+                        ) : (
+                            members.map((member, index) => (
+                                <tr
+                                    key={member.id}
+                                    className="hover:bg-blue-900/30 transition duration-200 border-b border-gray-700"
+                                >
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-100 font-semibold">
+                                        {index + 1}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-100">{member.no_ktp}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-100">{member.nama}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-100">{member.alamat}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-100">{member.tgl_lahir}</td>
+                                </tr>
+                            ))
+                        )}
                     </tbody>
                 </table>
-            </div>
-
-            {/* Pagination */}
-            <div className="flex justify-between items-center mt-6">
-                <button className="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200">
-                    Previous
-                </button>
-                <span className="text-gray-600">
-                    Page <span className="font-bold">1</span> of <span className="font-bold">5</span>
-                </span>
-                <button className="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200">
-                    Next
-                </button>
             </div>
         </div>
     );
