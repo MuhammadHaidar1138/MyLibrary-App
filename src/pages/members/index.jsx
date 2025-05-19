@@ -254,26 +254,27 @@ export default function MembersIndex() {
                     </button>
                 </div>
 
-                <div className="overflow-x-auto rounded-xl shadow-2xl bg-gray-800 border border-gray-700">
-                    <table className="min-w-full divide-y divide-gray-700">
+                {/* Tabel Members */}
+                <div className="rounded-xl shadow-2xl bg-gray-800 border border-gray-700 mt-2">
+                    <table className="min-w-full table-fixed divide-y divide-gray-700">
                         <thead className="bg-gradient-to-r from-blue-900 via-blue-800 to-blue-700">
                             <tr>
-                                <th className="px-6 py-3 text-xs font-bold text-blue-200 uppercase tracking-wider text-center">
+                                <th className="w-10 px-2 py-3 text-xs font-bold text-blue-200 uppercase tracking-wider text-center whitespace-nowrap">
                                     <span className="bg-blue-700 px-2 py-1 rounded-full">No</span>
                                 </th>
-                                <th className="px-6 py-3 text-xs font-bold text-blue-200 uppercase tracking-wider text-center">
+                                <th className="w-32 px-2 py-3 text-xs font-bold text-blue-200 uppercase tracking-wider text-center whitespace-nowrap">
                                     <span className="bg-blue-700 px-2 py-1 rounded-full">ID Number</span>
                                 </th>
-                                <th className="px-6 py-3 text-xs font-bold text-blue-200 uppercase tracking-wider text-center">
+                                <th className="w-32 px-2 py-3 text-xs font-bold text-blue-200 uppercase tracking-wider text-center whitespace-nowrap">
                                     <span className="bg-blue-700 px-2 py-1 rounded-full">Name</span>
                                 </th>
-                                <th className="px-6 py-3 text-xs font-bold text-blue-200 uppercase tracking-wider text-center">
+                                <th className="w-40 px-2 py-3 text-xs font-bold text-blue-200 uppercase tracking-wider text-center whitespace-nowrap">
                                     <span className="bg-blue-700 px-2 py-1 rounded-full">Address</span>
                                 </th>
-                                <th className="px-6 py-3 text-xs font-bold text-blue-200 uppercase tracking-wider text-center">
+                                <th className="w-32 px-2 py-3 text-xs font-bold text-blue-200 uppercase tracking-wider text-center whitespace-nowrap">
                                     <span className="bg-blue-700 px-2 py-1 rounded-full">Date of Birth</span>
                                 </th>
-                                <th className="px-6 py-3 text-xs font-bold text-blue-200 uppercase tracking-wider text-center">
+                                <th className="w-28 px-2 py-3 text-xs font-bold text-blue-200 uppercase tracking-wider text-center whitespace-nowrap">
                                     <span className="bg-blue-700 px-2 py-1 rounded-full">Action</span>
                                 </th>
                             </tr>
@@ -291,29 +292,30 @@ export default function MembersIndex() {
                                         key={member.id}
                                         className="hover:bg-blue-900/30 transition duration-200 border-b border-gray-700"
                                     >
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-100 font-semibold text-center">
+                                        <td className="px-2 py-3 whitespace-nowrap text-xs text-blue-100 font-semibold text-center">
                                             {index + 1}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-100 text-center">{member.no_ktp}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-100 text-center">{member.nama}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-100 text-center">{member.alamat}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-100 text-center">{member.tgl_lahir}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-100 flex justify-center gap-2 text-center">
+                                        <td className="px-2 py-3 whitespace-nowrap text-xs text-blue-100 text-center">{member.no_ktp}</td>
+                                        <td className="px-2 py-3 whitespace-nowrap text-xs text-blue-100 text-center">{member.nama}</td>
+                                        <td className="px-2 py-3 whitespace-nowrap text-xs text-blue-100 text-center">{member.alamat}</td>
+                                        <td className="px-2 py-3 whitespace-nowrap text-xs text-blue-100 text-center">{member.tgl_lahir}</td>
+                                        <td className="px-2 py-3 whitespace-nowrap text-xs text-blue-100 flex justify-center gap-1 text-center">
                                             <button
-                                                className="flex items-center gap-1 bg-gradient-to-r from-blue-700 via-blue-800 to-blue-900 hover:from-blue-800 hover:to-blue-950 text-blue-100 px-3 py-1 rounded shadow"
+                                                className="flex items-center gap-1 bg-blue-700 hover:bg-blue-900 text-blue-100 px-2 py-1 rounded text-xs"
+                                                title="Detail"
                                                 onClick={() => {
                                                     setDetailMember(member);
                                                     setIsDetailModalOpen(true);
                                                 }}
                                             >
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                                 </svg>
-                                                Detail
                                             </button>
                                             <button
-                                                className="flex items-center gap-1 bg-gradient-to-r from-sky-600 via-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-blue-100 px-3 py-1 rounded shadow"
+                                                className="flex items-center gap-1 bg-blue-600 hover:bg-blue-800 text-blue-100 px-2 py-1 rounded text-xs"
+                                                title="Edit"
                                                 onClick={() => {
                                                     setEditId(member.id);
                                                     setFormModal({
@@ -326,22 +328,21 @@ export default function MembersIndex() {
                                                     setIsEditModalOpen(true);
                                                 }}
                                             >
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536M9 13l6-6m2 2l-6 6m-2 2h2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2h-2v-2a2 2 0 00-2-2H9a2 2 0 00-2 2v2a2 2 0 002 2z" />
                                                 </svg>
-                                                Edit
                                             </button>
                                             <button
-                                                className="flex items-center gap-1 bg-gradient-to-r from-gray-700 via-gray-800 to-gray-900 hover:from-red-700 hover:to-red-900 text-blue-100 px-3 py-1 rounded shadow"
+                                                className="flex items-center gap-1 bg-gray-700 hover:bg-red-800 text-blue-100 px-2 py-1 rounded text-xs"
+                                                title="Delete"
                                                 onClick={() => {
                                                     setDeleteId(member.id);
                                                     setIsDeleteModalOpen(true);
                                                 }}
                                             >
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-red-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-red-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2a2 2 0 00-2-2h-2v-2a2 2 0 00-2-2H9a2 2 0 00-2 2v2a2 2 0 002 2z" />
                                                 </svg>
-                                                Delete
                                             </button>
                                         </td>
                                     </tr>

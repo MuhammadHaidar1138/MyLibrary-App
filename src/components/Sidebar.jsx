@@ -52,14 +52,14 @@ const Sidebar = () => {
         {/* Categories */}
         <li>
           <Link
-            to="/categories"
+            to="/book"
             className={`flex items-center p-3 rounded-lg cursor-pointer transition-all duration-300 ${
-              isActive("/categories") ? "bg-gray-700 text-purple-500" : "hover:bg-gray-700"
+              isActive("/book") ? "bg-gray-700 text-purple-500" : "hover:bg-gray-700"
             }`}
           >
-            <FaBook className={`mr-3 text-lg ${isActive("/categories") ? "text-purple-500" : ""}`} />
-            <span className={`text-base font-medium ${isActive("/categories") ? "text-purple-500" : ""}`}>
-              Categories
+            <FaBook className={`mr-3 text-lg ${isActive("/book") ? "text-purple-500" : ""}`} />
+            <span className={`text-base font-medium ${isActive("/book") ? "text-purple-500" : ""}`}>
+              Books
             </span>
           </Link>
         </li>
