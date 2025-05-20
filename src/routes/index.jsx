@@ -5,6 +5,7 @@ import Dashboard from "../pages/Dashboard";
 import ProtectedRoute from "../middleware/ProtectedRoute";
 import MembersIndex from "../pages/members";
 import BooksIndex from "../pages/books";
+import LendingsIndex from "../pages/lendings";
 
 export const router = createBrowserRouter([
     { path: '/login', element: <Login /> },
@@ -20,6 +21,7 @@ export const router = createBrowserRouter([
             { path: '/dashboard', element: <Dashboard /> },
             { path: '/member', element: <MembersIndex /> },
             { path: '/book', element: <BooksIndex /> }, 
+            { path: '/lending', element: <LendingsIndex /> },
         ],
     },
 ]);

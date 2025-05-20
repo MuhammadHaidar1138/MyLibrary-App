@@ -25,7 +25,7 @@ export default function BooksIndex() {
     const [editId, setEditId] = useState(null);
     const [deleteId, setDeleteId] = useState(null);
     const [detailBook, setDetailBook] = useState(null);
-    const [search, setSearch] = useState(""); // Tambahkan state untuk search
+    const [search, setSearch] = useState("");
 
     const navigate = useNavigate();
 
@@ -142,7 +142,6 @@ export default function BooksIndex() {
 
     const totalStock = books.reduce((sum, book) => sum + (parseInt(book.stok) || 0), 0);
 
-    // Filter books berdasarkan search
     const filteredBooks = books.filter(
         (book) =>
             book.judul?.toLowerCase().includes(search.toLowerCase()) ||

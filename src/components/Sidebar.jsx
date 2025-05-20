@@ -49,7 +49,7 @@ const Sidebar = () => {
           </Link>
         </li>
 
-        {/* Categories */}
+        {/* Book */}
         <li>
           <Link
             to="/book"
@@ -64,17 +64,17 @@ const Sidebar = () => {
           </Link>
         </li>
 
-        {/* My Account */}
+        {/* Lending */}
         <li>
           <Link
-            to="/account"
+            to="/lending"
             className={`flex items-center p-3 rounded-lg cursor-pointer transition-all duration-300 ${
-              isActive("/account") ? "bg-gray-700 text-purple-500" : "hover:bg-gray-700"
+              isActive("/lending") ? "bg-gray-700 text-purple-500" : "hover:bg-gray-700"
             }`}
           >
-            <FaUser className={`mr-3 text-lg ${isActive("/account") ? "text-purple-500" : ""}`} />
-            <span className={`text-base font-medium ${isActive("/account") ? "text-purple-500" : ""}`}>
-              My Account
+            <FaUser className={`mr-3 text-lg ${isActive("/lending") ? "text-purple-500" : ""}`} />
+            <span className={`text-base font-medium ${isActive("/lending") ? "text-purple-500" : ""}`}>
+              Lendings
             </span>
           </Link>
         </li>
