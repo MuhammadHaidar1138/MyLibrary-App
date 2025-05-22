@@ -3,6 +3,9 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_URL } from "../../constan";
 import Modal from "../../components/Modal";
+import { Bar } from "react-chartjs-2";
+import { Chart, BarElement, CategoryScale, LinearScale, Tooltip, Legend } from "chart.js";
+Chart.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
 export default function LendingsIndex() {
     const [lendings, setLendings] = useState([]);
@@ -22,8 +25,24 @@ export default function LendingsIndex() {
     const [detailModalOpen, setDetailModalOpen] = useState(false);
     const [detailLending, setDetailLending] = useState(null);
 
-    // Tambahkan state untuk loading tombol return
-    const [returnLoadingId, setReturnLoadingId] = useState(null);
+    const [returnedLendings, setReturnedLendings] = useState({});
+    const [penaltyModalOpen, setPenaltyModalOpen] = useState(false);
+    const [penaltyForm, setPenaltyForm] = useState({
+        id_member: "",
+        id_buku: "",
+        jumlah_denda: "",
+        jenis_denda: "kerusakan",
+        deskripsi: "",
+        lending_id: ""
+    });
+
+    const [chartAccordionOpen, setChartAccordionOpen] = useState(false);
+
+    const [search, setSearch] = useState("");
+    const [filteredLendings, setFilteredLendings] = useState([]);
+
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     const navigate = useNavigate();
 
@@ -46,11 +65,10 @@ export default function LendingsIndex() {
                 setError(
                     err.response?.data?.message ||
                     err.response?.data?.error ||
-                    "Failed to fetch Lendings Data."
+                    "Failed to fetch lending data."
                 );
             });
 
-        // Memanggil endpoint buku untuk mengambil data buku
         axios.get(`${API_URL}buku`, {
             headers: {
                 Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -69,11 +87,10 @@ export default function LendingsIndex() {
                 setError(
                     err.response?.data?.message ||
                     err.response?.data?.error ||
-                    "Failed to fetch Books."
+                    "Failed to fetch books."
                 );
             });
 
-        // Memanggil endpoint member untuk mengambil data member
         axios.get(`${API_URL}member`, {
             headers: {
                 Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -92,7 +109,7 @@ export default function LendingsIndex() {
                 setError(
                     err.response?.data?.message ||
                     err.response?.data?.error ||
-                    "Failed to fetch Members."
+                    "Failed to fetch members."
                 );
             })
     }
@@ -106,7 +123,7 @@ export default function LendingsIndex() {
             }
         })
         .then(() => {
-            setAlert({ message: "Successfully added book", type: "success" });
+            setAlert({ message: "Lending successfully created.", type: "success" });
             setFormModal({ id_buku: "", id_member: "", tgl_pinjam: "", tgl_pengembalian: "" });
             fetchData();
         })
@@ -115,59 +132,147 @@ export default function LendingsIndex() {
                 localStorage.removeItem("token");
                 navigate("/login");
             }
-            setModalError(
-                err.response?.data?.message ||
-                err.response?.data?.error ||
-                "Failed to add lendings."
-            );
-            setAlert({ message: "Failed to add lendings", type: "error" });
+            setAlert({ message: "Failed to create lending.", type: "error" });
             setTimeout(() => setAlert(""), 3000);
         })
     }
 
-    // Fungsi handleReturn
-    function handleReturn(lending) {
-        setReturnLoadingId(lending.id);
+    function handlePenaltySubmit(e) {
+        e.preventDefault();
         const today = new Date().toISOString().split("T")[0];
-        if (Number(lending.status) === 1) return;
 
-        // Jika hari ini > tgl_pengembalian maka terlambat, jika <= maka dikembalikan
-        const isLate = today > lending.tgl_pengembalian;
-        const status = isLate ? 2 : 1;
-
-        axios.put(`${API_URL}peminjaman/pengembalian/${lending.id}`, {
-            ...lending,
-            status,
-            tgl_pengembalian: today
-        }, {
-            headers: {
-                Authorization: `Bearer ${localStorage.getItem('token')}`,
-                Accept: 'application/json'
+        setReturnedLendings(prev => ({
+            ...prev,
+            [penaltyForm.lending_id]: {
+                returned: true,
+                returnedAt: today,
+                penaltyType: penaltyForm.jenis_denda
             }
-        })
+        }));
+
+        axios.post(`${API_URL}denda`,
+            {
+                id_member: penaltyForm.id_member,
+                id_buku: penaltyForm.id_buku,
+                jumlah_denda: penaltyForm.jumlah_denda,
+                jenis_denda: penaltyForm.jenis_denda,
+                deskripsi: penaltyForm.deskripsi
+            },
+            {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`,
+                    Accept: 'application/json'
+                }
+            }
+        )
         .then(() => {
-            setAlert({ message: "Book returned successfully", type: "success" });
-            fetchData();
+            setAlert({ message: "Penalty successfully added.", type: "success" });
         })
-        .catch(() => {
-            setAlert({ message: "Failed to return book", type: "error" });
-            setTimeout(() => setAlert(""), 3000);
-        })
-        .finally(() => setReturnLoadingId(null));
+        .catch(err => {
+            setAlert({
+                message:
+                    err.response?.data?.message ||
+                    err.response?.data?.error ||
+                    "Failed to add penalty.",
+                type: "error"
+            });
+        });
+
+        setPenaltyModalOpen(false);
+        setPenaltyForm({
+            id_member: "",
+            id_buku: "",
+            jumlah_denda: "",
+            jenis_denda: "kerusakan",
+            deskripsi: "",
+            lending_id: ""
+        });
     }
+
+    // Chart data calculation
+    const lendingPerMonth = {};
+    lendings.forEach(lending => {
+        const month = new Date(lending.tgl_pinjam).toLocaleString("default", { month: "short", year: "numeric" });
+        lendingPerMonth[month] = (lendingPerMonth[month] || 0) + 1;
+    });
+    const chartLabels = Object.keys(lendingPerMonth);
+    const chartData = Object.values(lendingPerMonth);
+
+    const barData = {
+        labels: chartLabels,
+        datasets: [
+            {
+                label: "Total Lending",
+                data: chartData,
+                backgroundColor: "rgba(59, 130, 246, 0.7)", // Tailwind blue-600
+                borderColor: "rgba(37, 99, 235, 1)", // Tailwind blue-700
+                borderWidth: 2,
+                borderRadius: 8,
+                maxBarThickness: 32,
+            },
+        ],
+    };
+
+    const barOptions = {
+        responsive: true,
+        plugins: {
+            legend: {
+                display: false,
+            },
+            tooltip: {
+                backgroundColor: "#1e293b",
+                titleColor: "#fff",
+                bodyColor: "#fff",
+                borderColor: "#3b82f6",
+                borderWidth: 1,
+            },
+        },
+        scales: {
+            x: {
+                grid: { color: "#334155" },
+                ticks: { color: "#93c5fd", font: { weight: "bold" } },
+            },
+            y: {
+                beginAtZero: true,
+                grid: { color: "#334155" },
+                ticks: { color: "#93c5fd", font: { weight: "bold" } },
+            },
+        },
+    };
 
     useEffect(() => {
         fetchData();
     }, []);
 
+    useEffect(() => {
+        if (!search) {
+            setFilteredLendings(lendings);
+        } else {
+            setFilteredLendings(
+                lendings.filter(lending =>
+                    lending.id_buku?.toString().toLowerCase().includes(search.toLowerCase()) ||
+                    lending.id_member?.toString().toLowerCase().includes(search.toLowerCase()) ||
+                    books.find(b => b.id === lending.id_buku)?.judul?.toLowerCase().includes(search.toLowerCase()) ||
+                    members.find(m => m.id === lending.id_member)?.nama?.toLowerCase().includes(search.toLowerCase())
+                )
+            );
+        }
+    }, [search, lendings, books, members]);
+
+    // Pagination logic
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentLendings = filteredLendings.slice(indexOfFirstItem, indexOfLastItem);
+    const totalPages = Math.ceil(filteredLendings.length / itemsPerPage);
+
     return (
         <>
+            {/* Alerts */}
             {error && (
                 <div className="bg-red-500 text-white p-3 rounded-lg mb-4 shadow-lg">
                     {error}
                 </div>
             )}
-
             {alert && alert.message && (
                 <div
                     className={`
@@ -194,11 +299,17 @@ export default function LendingsIndex() {
                 </div>
             )}
 
-            {/* Form */}
-            <div className="flex mb-6 items-stretch">
-                {/* Card Form Lebih Lebar */}
-                <div className="w-full max-w-lg bg-gray-800 border border-gray-700 rounded-xl shadow-2xl p-6 mr-8 flex flex-col h-full">
-                    <h2 className="text-xl font-bold text-blue-200 mb-4">Create New Lending</h2>
+            {/* Top Section: Create, Rules, Chart */}
+            <div className="flex flex-col md:flex-row justify-center gap-8 mb-12">
+                {/* Create Lending Card */}
+                <div className="w-full max-w-md bg-gradient-to-br from-blue-900 via-blue-800 to-blue-700 border border-blue-900 rounded-2xl shadow-2xl p-6 flex flex-col h-fit">
+                    <h2 className="text-xl font-bold text-blue-100 mb-4 flex items-center gap-2">
+                        <svg className="h-7 w-7 text-blue-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <circle cx="12" cy="12" r="10" strokeWidth="2" stroke="currentColor" fill="#2563eb" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h8M8 16h8M8 8h8" stroke="#fff"/>
+                        </svg>
+                        Create New Lending
+                    </h2>
                     <form onSubmit={handleSubmitModal} className="flex-1 flex flex-col justify-between">
                         <div className="mb-4">
                             <label className="block text-blue-100 text-sm font-semibold mb-2" htmlFor="member">
@@ -276,166 +387,275 @@ export default function LendingsIndex() {
                         </button>
                     </form>
                 </div>
-                <div className="max-w-xs w-full bg-gray-800 border border-gray-700 rounded-xl shadow-2xl p-4 flex flex-col h-full justify-center">
-                    <h3 className="text-lg font-bold text-blue-300 mb-3 text-center">Lending Rules</h3>
-                    <ul className="list-disc list-inside text-blue-100 text-sm space-y-3">
-                        <li>
-                            There is no maximum limit for the number of days a book can be borrowed.
-                        </li>
-                        <li>
-                            If the book is returned late, the borrower will be fined according to library regulations.
-                        </li>
-                        <li>
-                            Damaged or lost books must be replaced at the book's price.
-                        </li>
-                        <li>
-                            Each member can borrow a maximum of 3 books at a time.
-                        </li>
-                    </ul>
+                {/* Lending Rules & Chart */}
+                <div className="flex flex-col gap-4 w-full max-w-xs">
+                    {/* Lending Rules Card */}
+                    <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-700 border border-gray-700 rounded-2xl shadow-2xl p-4 flex flex-col h-fit">
+                        <h3 className="text-lg font-bold text-blue-300 mb-3 text-center">Lending Rules</h3>
+                        <ul className="list-disc list-inside text-blue-100 text-sm space-y-3">
+                            <li>There is no maximum limit for the number of days a book can be borrowed.</li>
+                            <li>If the book is returned late, the borrower will be fined according to library regulations.</li>
+                            <li>Damaged or lost books must be replaced at the book's price.</li>
+                            <li>Each member can borrow a maximum of 3 books at a time.</li>
+                        </ul>
+                    </div>
+                    {/* Lending Chart Accordion */}
+                    <div className="w-full">
+                        <button
+                            className="w-full flex justify-between items-center px-3 py-2 bg-gradient-to-r from-blue-900 via-blue-800 to-blue-700 text-blue-200 font-semibold text-sm rounded-xl focus:outline-none shadow"
+                            onClick={() => setChartAccordionOpen(!chartAccordionOpen)}
+                        >
+                            <span>Lending Chart (Monthly)</span>
+                            <svg
+                                className={`w-4 h-9 transform transition-transform duration-200 ${chartAccordionOpen ? "rotate-180" : ""}`}
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+                        {chartAccordionOpen && (
+                            <div className="bg-gray-900 border border-gray-700 rounded-b-2xl p-2 mt-1 shadow-inner">
+                                <Bar data={barData} options={barOptions} height={120} />
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 
-            {/* Accordion */}
-            <div className="rounded-xl shadow-2xl bg-gray-800 border border-gray-700 mt-2 overflow-hidden">
-                <button
-                    className="w-full flex justify-between items-center px-6 py-4 bg-gradient-to-r from-blue-900 via-blue-800 to-blue-700 text-blue-200 font-bold text-lg focus:outline-none"
-                    onClick={() => setAccordionOpen(!accordionOpen)}
-                >
-                    <span>Lending List</span>
-                    <svg
-                        className={`w-5 h-5 transform transition-transform duration-200 ${accordionOpen ? "rotate-180" : ""}`}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+            {/* Divider */}
+            <div className="max-w-5xl mx-auto my-8">
+                <div className="flex items-center">
+                    <div className="flex-1 border-t-2 border-blue-900" />
+                    <span className="mx-4 text-blue-400 font-bold tracking-widest text-lg select-none">LENDING DATA</span>
+                    <div className="flex-1 border-t-2 border-blue-900" />
+                </div>
+            </div>
+
+            {/* Search & Table Card */}
+            <div className="max-w-5xl mx-auto bg-gradient-to-br from-gray-900 via-gray-800 to-gray-700 border border-blue-900 rounded-2xl shadow-2xl p-6">
+                {/* Search Bar */}
+                <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-4">
+                    <div className="flex gap-2 w-full md:w-auto">
+                        <input
+                            type="text"
+                            placeholder="Search by member, book, or ID..."
+                            value={search}
+                            onChange={e => setSearch(e.target.value)}
+                            className="w-full md:w-80 px-4 py-2 rounded-lg border border-blue-800 bg-gray-900 text-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-700 transition"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setSearch("")}
+                            className="px-4 py-2 rounded-lg bg-gray-700 text-blue-100 hover:bg-gray-600 transition font-semibold"
+                        >
+                            Reset
+                        </button>
+                    </div>
+                    <div className="hidden md:block">
+                        <span className="text-blue-300 text-sm">{filteredLendings.length} result(s)</span>
+                    </div>
+                </div>
+
+                {/* Accordion Table */}
+                <div className="rounded-xl shadow-xl bg-gray-800 border border-gray-700 mt-2 overflow-hidden">
+                    <button
+                        className="w-full flex justify-between items-center px-6 py-4 bg-gradient-to-r from-blue-900 via-blue-800 to-blue-700 text-blue-200 font-bold text-lg focus:outline-none"
+                        onClick={() => setAccordionOpen(!accordionOpen)}
                     >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                </button>
-                {accordionOpen && (
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full table-fixed divide-y divide-gray-700">
-                            <thead className="bg-gradient-to-r from-blue-900 via-blue-800 to-blue-700">
-                                <tr>
-                                    <th className="w-12 px-2 py-3 text-xs font-bold text-blue-200 uppercase tracking-wider text-center whitespace-nowrap">
-                                        <span className="bg-blue-700 px-2 py-1 rounded-full">No</span>
-                                    </th>
-                                    <th className="w-1/3 px-2 py-3 text-xs font-bold text-blue-200 uppercase tracking-wider text-center whitespace-nowrap">
-                                        <span className="bg-blue-700 px-2 py-1 rounded-full">Book ID</span>
-                                    </th>
-                                    <th className="w-1/3 px-2 py-3 text-xs font-bold text-blue-200 uppercase tracking-wider text-center whitespace-nowrap">
-                                        <span className="bg-blue-700 px-2 py-1 rounded-full">Member ID</span>
-                                    </th>
-                                    <th className="w-1/6 px-2 py-3 text-xs font-bold text-blue-200 uppercase tracking-wider text-center whitespace-nowrap">
-                                        <span className="bg-blue-700 px-2 py-1 rounded-full">Loan Date</span>
-                                    </th>
-                                    <th className="w-36 px-2 py-3 text-xs font-bold text-blue-200 uppercase tracking-wider text-center whitespace-nowrap">
-                                        <span className="bg-blue-700 px-2 py-1 rounded-full">Return Date</span>
-                                    </th>
-                                    <th className="w-36 px-2 py-3 text-xs font-bold text-blue-200 uppercase tracking-wider text-center whitespace-nowrap">
-                                        <span className="bg-blue-700 px-2 py-1 rounded-full">Status</span>
-                                    </th>
-                                    <th className="w-36 px-2 py-3 text-xs font-bold text-blue-200 uppercase tracking-wider text-center whitespace-nowrap">
-                                        <span className="bg-blue-700 px-2 py-1 rounded-full">Action</span>
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {lendings.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={6} className="text-center py-8 text-gray-400">
-                                            No lendings found.
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    lendings.map((lending, index) => {
-                                        // Status logic
-                                        let statusLabel = "-";
-                                        let statusClass = "bg-gray-700 text-gray-100";
-                                        if (Number(lending.status) === 1) {
-                                            statusLabel = "Dikembalikan";
-                                            statusClass = "bg-green-700 text-green-100";
-                                        } else if (Number(lending.status) === 0) {
-                                            statusLabel = "Dipinjam";
-                                            statusClass = "bg-blue-700 text-blue-100";
-                                        } else if (Number(lending.status) === 2) {
-                                            statusLabel = "Terlambat";
-                                            statusClass = "bg-red-700 text-red-100";
-                                        }
-
-                                        // Per-row overdue & daysLeft
-                                        const isOverdue = new Date(lending.tgl_pengembalian) < new Date() && Number(lending.status) !== 1;
-                                        const daysLeft = Math.ceil((new Date(lending.tgl_pengembalian) - new Date()) / (1000 * 60 * 60 * 24));
-
-                                        return (
-                                            <tr
-                                                key={lending.id}
-                                                className="hover:bg-blue-900/30 transition duration-200 border-b border-gray-700"
-                                            >
-                                                <td className="px-2 py-3 whitespace-nowrap text-xs text-blue-100 font-semibold text-center">
-                                                    {index + 1}
-                                                </td>
-                                                <td className="px-2 py-3 whitespace-nowrap text-xs text-blue-100 text-center">
-                                                    {lending.id_buku} - {books.find(book => book.id === lending.id_buku)?.judul || "Undefined"}
-                                                </td>
-                                                <td className="px-2 py-3 whitespace-nowrap text-xs text-blue-100 text-center">
-                                                    {lending.id_member} - {members.find(member => member.id === lending.id_member)?.nama || "Undefined"}
-                                                </td>
-                                                <td className="px-2 py-3 whitespace-nowrap text-xs text-blue-100 text-center">{lending.tgl_pinjam}</td>
-                                                <td className="px-2 py-3 whitespace-nowrap text-xs text-blue-100 text-center">{lending.tgl_pengembalian}</td>
-                                                <td className="px-2 py-3 whitespace-nowrap text-xs text-blue-100 text-center">
-                                                    <span className={`px-2 py-1 rounded-full font-semibold ${statusClass}`}>{statusLabel}</span>
-                                                    {Number(lending.status) === 0 && (
-                                                        <>
-                                                            {!isOverdue && (
-                                                                <div className="text-xs text-gray-400 mt-1">Sisa waktu: {daysLeft} hari</div>
-                                                            )}
-                                                            {isOverdue && (
-                                                                <div className="text-xs text-red-400 mt-1">Terlambat: {Math.abs(daysLeft)} hari</div>
-                                                            )}
-                                                        </>
-                                                    )}
-                                                </td>
-                                                <td className="px-2 py-3 whitespace-nowrap text-xs text-blue-100 text-center">
-                                                    <div className="flex flex-row justify-center items-center gap-1 flex-wrap">
-                                                        <button
-                                                            className="flex items-center gap-1 bg-blue-700 hover:bg-blue-900 text-blue-100 px-2 py-1 rounded text-xs min-w-[60px]"
-                                                            style={{ fontSize: '11px' }}
-                                                            title="Detail"
-                                                            onClick={() => {
-                                                                setDetailLending(lending);
-                                                                setDetailModalOpen(true);
-                                                            }}
-                                                        >
-                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                                            </svg>
-                                                            Detail
-                                                        </button>
-                                                        {Number(lending.status) !== 1 && (
-                                                            <button
-                                                                className={`flex items-center gap-1 bg-green-700 hover:bg-green-800 text-green-100 px-2 py-1 rounded text-xs min-w-[60px] ${returnLoadingId === lending.id ? "opacity-50 cursor-not-allowed" : ""}`}
-                                                                style={{ fontSize: '11px' }}
-                                                                title="Return"
-                                                                onClick={() => handleReturn(lending)}
-                                                                disabled={returnLoadingId === lending.id}
-                                                            >
-                                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h7V3m0 0l11 11-4 4-7-7m0 0v7" />
-                                                                </svg>
-                                                                {returnLoadingId === lending.id ? "Processing..." : "Return"}
-                                                            </button>
-                                                        )}
-                                                    </div>
+                        <span>Lending List</span>
+                        <svg
+                            className={`w-5 h-5 transform transition-transform duration-200 ${accordionOpen ? "rotate-180" : ""}`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+                    {accordionOpen && (
+                        <div>
+                            {/* Pagination Controls */}
+                            <div className="flex items-center justify-between px-6 py-2 bg-gray-900 border-b border-gray-700">
+                                <div className="flex gap-1">
+                                    <button
+                                        className={`px-3 py-1 rounded-lg font-semibold transition bg-gray-700 text-blue-100 hover:bg-blue-800 ${currentPage === 1 ? "opacity-50 cursor-not-allowed" : ""}`}
+                                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                        disabled={currentPage === 1}
+                                    >
+                                        <svg className="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                                        </svg>
+                                        Prev
+                                    </button>
+                                    {[...Array(totalPages)].map((_, idx) => (
+                                        <button
+                                            key={idx}
+                                            className={`px-3 py-1 rounded-lg font-bold transition border-2 ${
+                                                currentPage === idx + 1
+                                                    ? "bg-gradient-to-r from-blue-700 via-blue-800 to-blue-900 text-white border-blue-700 shadow-lg scale-105"
+                                                    : "bg-gray-800 text-blue-200 border-gray-700 hover:bg-blue-900 hover:text-white"
+                                            }`}
+                                            onClick={() => setCurrentPage(idx + 1)}
+                                        >
+                                            {idx + 1}
+                                        </button>
+                                    ))}
+                                    <button
+                                        className={`px-3 py-1 rounded-lg font-semibold transition bg-gray-700 text-blue-100 hover:bg-blue-800 ${currentPage === totalPages ? "opacity-50 cursor-not-allowed" : ""}`}
+                                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                        disabled={currentPage === totalPages || totalPages === 0}
+                                    >
+                                        Next
+                                        <svg className="w-4 h-4 inline-block ml-1" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full table-fixed divide-y divide-gray-700">
+                                    <thead className="bg-gradient-to-r from-blue-900 via-blue-800 to-blue-700">
+                                        <tr>
+                                            <th className="w-12 px-2 py-3 text-xs font-bold text-blue-200 uppercase tracking-wider text-center whitespace-nowrap">
+                                                <span className="bg-blue-700 px-2 py-1 rounded-full">No</span>
+                                            </th>
+                                            <th className="w-1/3 px-2 py-3 text-xs font-bold text-blue-200 uppercase tracking-wider text-center whitespace-nowrap">
+                                                <span className="bg-blue-700 px-2 py-1 rounded-full">Book ID</span>
+                                            </th>
+                                            <th className="w-1/3 px-2 py-3 text-xs font-bold text-blue-200 uppercase tracking-wider text-center whitespace-nowrap">
+                                                <span className="bg-blue-700 px-2 py-1 rounded-full">Member ID</span>
+                                            </th>
+                                            <th className="w-1/6 px-2 py-3 text-xs font-bold text-blue-200 uppercase tracking-wider text-center whitespace-nowrap">
+                                                <span className="bg-blue-700 px-2 py-1 rounded-full">Loan Date</span>
+                                            </th>
+                                            <th className="w-36 px-2 py-3 text-xs font-bold text-blue-200 uppercase tracking-wider text-center whitespace-nowrap">
+                                                <span className="bg-blue-700 px-2 py-1 rounded-full">Return Date</span>
+                                            </th>
+                                            <th className="w-36 px-2 py-3 text-xs font-bold text-blue-200 uppercase tracking-wider text-center whitespace-nowrap">
+                                                <span className="bg-blue-700 px-2 py-1 rounded-full">Status</span>
+                                            </th>
+                                            <th className="w-36 px-2 py-3 text-xs font-bold text-blue-200 uppercase tracking-wider text-center whitespace-nowrap">
+                                                <span className="bg-blue-700 px-2 py-1 rounded-full">Action</span>
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {currentLendings.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={7} className="text-center py-8 text-gray-400">
+                                                    No lendings found.
                                                 </td>
                                             </tr>
-                                        );
-                                    })
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
+                                        ) : (
+                                            currentLendings.map((lending, index) => {
+                                                const returnedInfo = returnedLendings?.[lending.id];
+                                                let statusLabel = "Borrowed";
+                                                let statusClass = "bg-blue-700 text-blue-100";
+
+                                                if (returnedInfo?.returned) {
+                                                    if (returnedInfo.penaltyType === "terlambat") {
+                                                        statusLabel = "Late";
+                                                        statusClass = "bg-red-700 text-red-100";
+                                                    } else {
+                                                        statusLabel = "Returned";
+                                                        statusClass = "bg-green-700 text-green-100";
+                                                    }
+                                                }
+
+                                                const isOverdue = new Date(lending.tgl_pengembalian) < new Date() && !returnedInfo?.returned;
+                                                const daysLeft = Math.ceil((new Date(lending.tgl_pengembalian) - new Date()) / (1000 * 60 * 60 * 24));
+
+                                                return (
+                                                    <tr key={lending.id} className="hover:bg-blue-900/30 transition duration-200 border-b border-gray-700">
+                                                        <td className="px-2 py-3 whitespace-nowrap text-xs text-blue-100 font-semibold text-center">
+                                                            {indexOfFirstItem + index + 1}
+                                                        </td>
+                                                        <td className="px-2 py-3 whitespace-nowrap text-xs text-blue-100 text-center">
+                                                            {lending.id_buku} - {books.find(book => book.id === lending.id_buku)?.judul || "Undefined"}
+                                                        </td>
+                                                        <td className="px-2 py-3 whitespace-nowrap text-xs text-blue-100 text-center">
+                                                            {lending.id_member} - {members.find(member => member.id === lending.id_member)?.nama || "Undefined"}
+                                                        </td>
+                                                        <td className="px-2 py-3 whitespace-nowrap text-xs text-blue-100 text-center">{lending.tgl_pinjam}</td>
+                                                        <td className="px-2 py-3 whitespace-nowrap text-xs text-blue-100 text-center">{lending.tgl_pengembalian}</td>
+                                                        <td className="px-2 py-3 whitespace-nowrap text-xs text-blue-100 text-center">
+                                                            <span
+                                                                className={`px-2 py-1 rounded-full font-semibold ${statusClass}`}
+                                                                style={{ cursor: "not-allowed", opacity: 0.7 }}
+                                                                title="Status cannot be clicked"
+                                                            >
+                                                                {statusLabel}
+                                                            </span>
+                                                            {!returnedInfo?.returned && (
+                                                                <>
+                                                                    {daysLeft > 0 && (
+                                                                        <div className="text-xs text-gray-400 mt-1">Time left: {daysLeft} days</div>
+                                                                    )}
+                                                                    {daysLeft === 0 && (
+                                                                        <div className="text-xs text-yellow-400 mt-1">Today is the last return day</div>
+                                                                    )}
+                                                                    {isOverdue && daysLeft !== 0 && (
+                                                                        <div className="text-xs text-red-400 mt-1">Late: {Math.abs(daysLeft)} days</div>
+                                                                    )}
+                                                                </>
+                                                            )}
+                                                        </td>
+                                                        <td className="px-2 py-3 whitespace-nowrap text-xs text-blue-100 text-center">
+                                                            <div className="flex flex-row justify-center items-center gap-1 flex-wrap">
+                                                                <button
+                                                                    className="flex items-center gap-1 bg-blue-700 hover:bg-blue-900 text-blue-100 px-2 py-1 rounded text-xs min-w-[60px]"
+                                                                    style={{ fontSize: '11px' }}
+                                                                    title="Detail"
+                                                                    onClick={() => {
+                                                                        setDetailLending(lending);
+                                                                        setDetailModalOpen(true);
+                                                                    }}
+                                                                >
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                                    </svg>
+                                                                    Detail
+                                                                </button>
+                                                                {!returnedInfo?.returned && (
+                                                                    <button
+                                                                        className="flex items-center gap-1 bg-green-700 hover:bg-green-900 text-green-100 px-2 py-1 rounded text-xs min-w-[60px]"
+                                                                        style={{ fontSize: '11px' }}
+                                                                        title="Return"
+                                                                        onClick={() => {
+                                                                            const today = new Date().toISOString().split("T")[0];
+                                                                            const isLate = today > lending.tgl_pengembalian;
+                                                                            setPenaltyForm({
+                                                                                id_member: lending.id_member,
+                                                                                id_buku: lending.id_buku,
+                                                                                jumlah_denda: "",
+                                                                                jenis_denda: isLate ? "terlambat" : "kerusakan",
+                                                                                deskripsi: "",
+                                                                                lending_id: lending.id
+                                                                            });
+                                                                            setPenaltyModalOpen(true);
+                                                                        }}
+                                                                    >
+                                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h7V3m0 0l11 11-4 4-7-7z" />
+                                                                        </svg>
+                                                                        Return
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Modal Detail */}
@@ -446,36 +666,36 @@ export default function LendingsIndex() {
                 width="max-w-md"
             >
                 {detailLending && (
-                    <div className="space-y-4 text-blue-100 text-base">
-                        <div className="flex justify-between items-center">
-                            <span className="font-semibold text-blue-300">Member ID</span>
-                            <span className="bg-blue-700 px-3 py-1 rounded-full font-mono">{detailLending.id_member}</span>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-blue-100">
+                        <div>
+                            <span className="font-semibold">Member ID:</span>
+                            <div className="ml-2 break-words font-mono">{detailLending.id_member}</div>
                         </div>
-                        <div className="flex justify-between items-center">
-                            <span className="font-semibold text-blue-300">Member Name</span>
-                            <span className="bg-blue-700 px-3 py-1 rounded-full">
+                        <div>
+                            <span className="font-semibold">Member Name:</span>
+                            <div className="ml-2 break-words">
                                 {members.find(m => m.id === detailLending.id_member)?.nama || "Undefined"}
-                            </span>
+                            </div>
                         </div>
-                        <div className="flex justify-between items-center">
-                            <span className="font-semibold text-blue-300">Book ID</span>
-                            <span className="bg-blue-700 px-3 py-1 rounded-full font-mono">{detailLending.id_buku}</span>
+                        <div>
+                            <span className="font-semibold">Book ID:</span>
+                            <div className="ml-2 break-words font-mono">{detailLending.id_buku}</div>
                         </div>
-                        <div className="flex justify-between items-center">
-                            <span className="font-semibold text-blue-300">Book Title</span>
-                            <span className="bg-blue-700 px-3 py-1 rounded-full">
+                        <div>
+                            <span className="font-semibold">Book Title:</span>
+                            <div className="ml-2 break-words">
                                 {books.find(b => b.id === detailLending.id_buku)?.judul || "Undefined"}
-                            </span>
+                            </div>
                         </div>
-                        <div className="flex justify-between items-center">
-                            <span className="font-semibold text-blue-300">Loan Date</span>
-                            <span className="bg-blue-700 px-3 py-1 rounded-full">{detailLending.tgl_pinjam}</span>
+                        <div>
+                            <span className="font-semibold">Loan Date:</span>
+                            <div className="ml-2 break-words">{detailLending.tgl_pinjam}</div>
                         </div>
-                        <div className="flex justify-between items-center">
-                            <span className="font-semibold text-blue-300">Return Date</span>
-                            <span className="bg-blue-700 px-3 py-1 rounded-full">{detailLending.tgl_pengembalian}</span>
+                        <div>
+                            <span className="font-semibold">Return Date:</span>
+                            <div className="ml-2 break-words">{detailLending.tgl_pengembalian}</div>
                         </div>
-                        <div className="flex justify-end pt-4">
+                        <div className="md:col-span-2 flex justify-end pt-2">
                             <button
                                 type="button"
                                 className="px-4 py-2 rounded bg-gray-700 text-blue-100 hover:bg-gray-600 transition"
@@ -486,6 +706,118 @@ export default function LendingsIndex() {
                         </div>
                     </div>
                 )}
+            </Modal>
+
+            {/* Modal Penalty */}
+            <Modal
+                isOpen={penaltyModalOpen}
+                onClose={() => setPenaltyModalOpen(false)}
+                title="Add Penalty"
+                width="max-w-md"
+            >
+                <form onSubmit={handlePenaltySubmit} className="space-y-4 text-blue-100">
+                    <div>
+                        <label className="block text-sm font-semibold mb-1">Member ID</label>
+                        <input
+                            type="text"
+                            value={penaltyForm.id_member}
+                            disabled
+                            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-blue-100"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-semibold mb-1">Book ID</label>
+                        <input
+                            type="text"
+                            value={penaltyForm.id_buku}
+                            disabled
+                            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-blue-100"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-semibold mb-1">Penalty Amount</label>
+                        <input
+                            type="number"
+                            value={penaltyForm.jumlah_denda}
+                            onChange={e => setPenaltyForm({ ...penaltyForm, jumlah_denda: e.target.value })}
+                            required
+                            className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded text-blue-100"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-semibold mb-1">Penalty Type</label>
+                        {penaltyForm.jenis_denda === "terlambat" ? (
+                            <input
+                                type="text"
+                                value="Late"
+                                disabled
+                                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-blue-100"
+                            />
+                        ) : (
+                            <select
+                                value={penaltyForm.jenis_denda}
+                                onChange={e => setPenaltyForm({ ...penaltyForm, jenis_denda: e.target.value })}
+                                className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded text-blue-100"
+                                required
+                            >
+                                <option value="kerusakan">Damage</option>
+                                <option value="lainnya">Other</option>
+                            </select>
+                        )}
+                    </div>
+                    <div>
+                        <label className="block text-sm font-semibold mb-1">Description</label>
+                        <textarea
+                            value={penaltyForm.deskripsi}
+                            onChange={e => setPenaltyForm({ ...penaltyForm, deskripsi: e.target.value })}
+                            className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded text-blue-100"
+                            required
+                        />
+                    </div>
+                    <div className="flex justify-between pt-2 gap-2">
+                        <button
+                            type="button"
+                            className="px-4 py-2 rounded bg-green-700 text-white hover:bg-green-800 transition"
+                            onClick={() => {
+                                const today = new Date().toISOString().split("T")[0];
+                                setReturnedLendings(prev => ({
+                                    ...prev,
+                                    [penaltyForm.lending_id]: {
+                                        returned: true,
+                                        returnedAt: today,
+                                        penaltyType: "returned"
+                                    }
+                                }));
+                                setPenaltyModalOpen(false);
+                                setPenaltyForm({
+                                    id_member: "",
+                                    id_buku: "",
+                                    jumlah_denda: "",
+                                    jenis_denda: "kerusakan",
+                                    deskripsi: "",
+                                    lending_id: ""
+                                });
+                            }}
+                        >
+                            Return
+                        </button>
+                        <div className="flex gap-2">
+                            <button
+                                type="button"
+                                className="px-4 py-2 rounded bg-gray-700 text-blue-100 hover:bg-gray-600 transition"
+                                onClick={() => setPenaltyModalOpen(false)}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                className="px-4 py-2 rounded bg-red-900 text-white hover:bg-red-950 transition"
+                            >
+                                Add Penalty
+                            </button>
+                        </div>
+                    </div>
+                </form>
             </Modal>
         </>
     )

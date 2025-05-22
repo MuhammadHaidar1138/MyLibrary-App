@@ -27,6 +27,18 @@ export default function BooksIndex() {
     const [detailBook, setDetailBook] = useState(null);
     const [search, setSearch] = useState("");
 
+    // Pagination
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 8;
+    const totalPages = Math.ceil(
+        books.filter(
+            (book) =>
+                book.judul?.toLowerCase().includes(search.toLowerCase()) ||
+                book.pengarang?.toLowerCase().includes(search.toLowerCase()) ||
+                book.no_rak?.toLowerCase().includes(search.toLowerCase())
+        ).length / itemsPerPage
+    );
+
     const navigate = useNavigate();
 
     function fetchData() {
@@ -140,6 +152,11 @@ export default function BooksIndex() {
         fetchData();
     }, []);
 
+    // Reset ke halaman 1 saat search berubah
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [search]);
+
     const totalStock = books.reduce((sum, book) => sum + (parseInt(book.stok) || 0), 0);
 
     const filteredBooks = books.filter(
@@ -149,43 +166,31 @@ export default function BooksIndex() {
             book.no_rak?.toLowerCase().includes(search.toLowerCase())
     );
 
+    const paginatedBooks = filteredBooks.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    );
+
     return (
         <div className="p-6 min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-700">
-            <h1 className="text-3xl font-bold text-white mb-6">Books List</h1>
-            {error && (
-                <div className="bg-red-500 text-white p-3 rounded-lg mb-4 shadow-lg">
-                    {error}
-                </div>
-            )}
-
-            {alert && alert.message && (
-                <div
-                    className={`
-                        flex items-center gap-3 mb-4 px-5 py-3 rounded-xl shadow-2xl border-l-8
-                        ${alert.type === "success"
-                            ? "border-blue-900 bg-gradient-to-r from-blue-900 via-blue-800 to-gray-900 text-blue-100"
-                            : "border-red-600 bg-gradient-to-r from-red-900 via-red-800 to-gray-900 text-red-100"}
-                        animate-fade-in
-                    `}
-                    style={{ transition: "all 0.3s" }}
-                >
-                    <span>
-                        {alert.type === "success" ? (
-                            <svg className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                            </svg>
-                        ) : (
-                            <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        )}
+            {/* Header */}
+            <div className="max-w-5xl mx-auto mb-8">
+                <div className="flex items-center gap-4 bg-gradient-to-r from-blue-900 via-blue-800 to-blue-700 rounded-2xl shadow-2xl p-6 border border-blue-900">
+                    <span className="inline-flex items-center justify-center h-14 w-14 rounded-full shadow-lg bg-gradient-to-br from-blue-700 via-blue-600 to-blue-400">
+                        <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <circle cx="12" cy="12" r="10" strokeWidth="2" stroke="currentColor" fill="#2563eb" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h8M8 16h8M8 8h8" stroke="#fff"/>
+                        </svg>
                     </span>
-                    <span className="flex-1">{alert.message}</span>
+                    <div>
+                        <h1 className="text-3xl md:text-4xl font-extrabold text-blue-100 tracking-tight mb-1">Books Management</h1>
+                        <p className="text-blue-200 text-sm md:text-base">Manage, search, and organize your library's book collection.</p>
+                    </div>
                 </div>
-            )}
+            </div>
 
             {/* Cards */}
-            <div className="flex flex-1 gap-4 mb-6">
+            <div className="flex flex-1 gap-4 mb-6 max-w-5xl mx-auto">
                 <div className="flex-1 bg-gradient-to-br from-blue-800 via-blue-900 to-blue-950 rounded-xl p-4 shadow-lg text-center h-[96px] md:h-[128px] flex flex-col justify-center">
                     <div className="text-blue-200 text-sm font-semibold mb-1">Total Books</div>
                     <div className="text-3xl font-bold text-white">{books.length}</div>
@@ -196,34 +201,50 @@ export default function BooksIndex() {
                 </div>
             </div>
 
-            {/* Search & Add Book buttons on the right */}
-            <div className="flex justify-end items-center mb-4 gap-2">
-                <input
-                    type="text"
-                    placeholder="Search..."
-                    className="px-2 py-1 rounded bg-gray-900 border border-blue-800 text-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-700 text-sm"
-                    style={{ width: "140px" }}
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                />
+            {/* Divider */}
+            <div className="max-w-5xl mx-auto my-8">
+                <div className="flex items-center">
+                    <div className="flex-1 border-t-2 border-blue-900" />
+                    <span className="mx-4 text-blue-400 font-bold tracking-widest text-lg select-none">BOOKS DATA</span>
+                    <div className="flex-1 border-t-2 border-blue-900" />
+                </div>
+            </div>
+
+            {/* Search & Add Book */}
+            <div className="max-w-5xl mx-auto flex flex-col md:flex-row justify-between items-center mb-4 gap-2">
+                <div className="flex gap-2 w-full md:w-auto">
+                    <input
+                        type="text"
+                        placeholder="Search by title, author, or rack..."
+                        className="w-full md:w-80 px-4 py-2 rounded-lg border border-blue-800 bg-gray-900 text-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-700 transition text-sm"
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                    />
+                    <button
+                        type="button"
+                        onClick={() => setSearch("")}
+                        className="px-4 py-2 rounded-lg bg-gray-700 text-blue-100 hover:bg-gray-600 transition font-semibold"
+                    >
+                        Reset
+                    </button>
+                </div>
                 <button
-                    className="flex items-center gap-2 bg-gradient-to-r from-blue-700 via-blue-800 to-blue-900 hover:from-blue-800 hover:to-blue-950 text-white px-2 py-1 text-xs rounded shadow font-semibold"
-                    style={{ height: "32px" }}
+                    className="flex items-center gap-2 bg-gradient-to-r from-blue-700 via-blue-800 to-blue-900 hover:from-blue-800 hover:to-blue-950 text-white px-4 py-2 text-sm rounded shadow font-semibold"
                     onClick={() => {
                         setFormModal({ no_rak: "", judul: "", pengarang: "", tahun_terbit: "", penerbit: "", stok: "", detail: "" });
                         setModalError("");
                         setIsAddModalOpen(true);
                     }}
                 >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-blue-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                     </svg>
                     Add Book
                 </button>
             </div>
 
-            {/* Table */}
-            <div className="rounded-xl shadow-2xl bg-gray-800 border border-gray-700 mt-2">
+            {/* Table Card */}
+            <div className="max-w-5xl mx-auto rounded-2xl shadow-2xl bg-gray-800 border border-gray-700 mt-2 overflow-x-auto">
                 <table className="min-w-full table-fixed divide-y divide-gray-700">
                     <thead className="bg-gradient-to-r from-blue-900 via-blue-800 to-blue-700">
                         <tr>
@@ -245,20 +266,20 @@ export default function BooksIndex() {
                         </tr>
                     </thead>
                     <tbody>
-                        {filteredBooks.length === 0 ? (
+                        {paginatedBooks.length === 0 ? (
                             <tr>
                                 <td colSpan={5} className="text-center py-8 text-gray-400">
                                     No books found.
                                 </td>
                             </tr>
                         ) : (
-                            filteredBooks.map((book, index) => (
+                            paginatedBooks.map((book, index) => (
                                 <tr
                                     key={book.id}
                                     className="hover:bg-blue-900/30 transition duration-200 border-b border-gray-700"
                                 >
                                     <td className="px-2 py-3 whitespace-nowrap text-xs text-blue-100 font-semibold text-center">
-                                        {index + 1}
+                                        {(currentPage - 1) * itemsPerPage + index + 1}
                                     </td>
                                     <td className="px-2 py-3 whitespace-nowrap text-xs text-blue-100 text-center">{book.judul}</td>
                                     <td className="px-2 py-3 whitespace-nowrap text-xs text-blue-100 text-center">{book.pengarang}</td>
@@ -318,6 +339,45 @@ export default function BooksIndex() {
                     </tbody>
                 </table>
             </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+                <div className="flex justify-center items-center gap-2 mt-6 mb-2 select-none">
+                    <button
+                        className={`px-3 py-1 rounded-lg font-semibold transition bg-gray-700 text-blue-100 hover:bg-blue-800 ${currentPage === 1 ? "opacity-50 cursor-not-allowed" : ""}`}
+                        onClick={() => setCurrentPage(currentPage - 1)}
+                        disabled={currentPage === 1}
+                    >
+                        <svg className="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                        </svg>
+                        Prev
+                    </button>
+                    {[...Array(totalPages)].map((_, idx) => (
+                        <button
+                            key={idx}
+                            className={`px-3 py-1 rounded-lg font-bold transition border-2 ${
+                                currentPage === idx + 1
+                                    ? "bg-gradient-to-r from-blue-700 via-blue-800 to-blue-900 text-white border-blue-700 shadow-lg scale-105"
+                                    : "bg-gray-800 text-blue-200 border-gray-700 hover:bg-blue-900 hover:text-white"
+                            }`}
+                            onClick={() => setCurrentPage(idx + 1)}
+                        >
+                            {idx + 1}
+                        </button>
+                    ))}
+                    <button
+                        className={`px-3 py-1 rounded-lg font-semibold transition bg-gray-700 text-blue-100 hover:bg-blue-800 ${currentPage === totalPages ? "opacity-50 cursor-not-allowed" : ""}`}
+                        onClick={() => setCurrentPage(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                    >
+                        Next
+                        <svg className="w-4 h-4 inline-block ml-1" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                        </svg>
+                    </button>
+                </div>
+            )}
 
             {/* Modal Add */}
             <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Add Book" width="max-w-lg">

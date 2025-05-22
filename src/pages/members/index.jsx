@@ -170,6 +170,20 @@ export default function MembersIndex() {
         );
     }).length;
 
+    // Tambahkan state dan logic pagination
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
+    const totalPages = Math.ceil(filteredMembers.length / itemsPerPage);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [search]);
+
+    const paginatedMembers = filteredMembers.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    );
+
     return (
         <>
             <div className="p-6 min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-700">
@@ -207,13 +221,24 @@ export default function MembersIndex() {
                     </div>
                 )}
 
-                <div className="text-center mb-8">
-                    <h1 className="text-4xl font-extrabold text-white drop-shadow-lg">Members Directory</h1>
-                    <p className="text-gray-300 mt-2">A clean and premium list of all registered members.</p>
+                {/* Header */}
+                <div className="max-w-5xl mx-auto mb-8">
+                    <div className="flex items-center gap-4 bg-gradient-to-r from-blue-900 via-blue-800 to-blue-700 rounded-2xl shadow-2xl p-6 border border-blue-900">
+                        <span className="inline-flex items-center justify-center h-14 w-14 rounded-full shadow-lg bg-gradient-to-br from-blue-700 via-blue-600 to-blue-400">
+                            <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <circle cx="12" cy="12" r="10" strokeWidth="2" stroke="currentColor" fill="#2563eb" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h8M8 16h8M8 8h8" stroke="#fff"/>
+                            </svg>
+                        </span>
+                        <div>
+                            <h1 className="text-3xl md:text-4xl font-extrabold text-blue-100 tracking-tight mb-1">Members Directory</h1>
+                            <p className="text-blue-200 text-sm md:text-base">A clean and premium list of all registered members.</p>
+                        </div>
+                    </div>
                 </div>
 
-                {/* Only 2 cards */}
-                <div className="flex flex-1 gap-4 mb-4">
+                {/* Cards */}
+                <div className="flex flex-1 gap-4 mb-6 max-w-5xl mx-auto">
                     <div className="flex-1 bg-gradient-to-br from-blue-800 via-blue-900 to-blue-950 rounded-xl p-4 shadow-lg text-center h-[96px] md:h-[128px] flex flex-col justify-center">
                         <div className="text-blue-200 text-sm font-semibold mb-1">Total Members</div>
                         <div className="text-3xl font-bold text-white">{members.length}</div>
@@ -224,23 +249,42 @@ export default function MembersIndex() {
                     </div>
                 </div>
 
-                <div className="flex justify-end items-center gap-2 mb-6">
-                    <div className="relative">
-                        <input
-                            type="text"
-                            placeholder="Search member..."
-                            className="pl-9 pr-3 py-1.5 text-sm rounded bg-gray-900 text-blue-100 border border-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-700 w-36 md:w-48"
-                            value={search}
-                            onChange={e => setSearch(e.target.value)}
-                        />
-                        <span className="absolute left-3 top-2 text-blue-400">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
-                            </svg>
-                        </span>
+                {/* Divider */}
+                <div className="max-w-5xl mx-auto my-8">
+                    <div className="flex items-center">
+                        <div className="flex-1 border-t-2 border-blue-900" />
+                        <span className="mx-4 text-blue-400 font-bold tracking-widest text-lg select-none">MEMBER DATA</span>
+                        <div className="flex-1 border-t-2 border-blue-900" />
+                    </div>
+                </div>
+
+                {/* Search & Add */}
+                <div className="max-w-5xl mx-auto flex flex-col md:flex-row justify-between items-center mb-4 gap-2">
+                    <div className="flex gap-2 w-full md:w-auto">
+                        <div className="relative w-full">
+                            <input
+                                type="text"
+                                placeholder="Search member..."
+                                className="pl-9 pr-3 py-2 text-sm rounded-lg bg-gray-900 text-blue-100 border border-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-700 w-full md:w-64 transition"
+                                value={search}
+                                onChange={e => setSearch(e.target.value)}
+                            />
+                            <span className="absolute left-3 top-2.5 text-blue-400">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
+                                </svg>
+                            </span>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setSearch("")}
+                            className="px-4 py-2 rounded-lg bg-gray-700 text-blue-100 hover:bg-gray-600 transition font-semibold"
+                        >
+                            Reset
+                        </button>
                     </div>
                     <button
-                        className="flex items-center gap-2 bg-gradient-to-r from-blue-700 via-blue-800 to-blue-900 hover:from-blue-800 hover:to-blue-950 text-white px-3 py-1.5 text-sm rounded shadow font-semibold"
+                        className="flex items-center gap-2 bg-gradient-to-r from-blue-700 via-blue-800 to-blue-900 hover:from-blue-800 hover:to-blue-950 text-white px-4 py-2 text-sm rounded shadow font-semibold"
                         onClick={() => {
                             setFormModal({ no_ktp: "", nama: "", alamat: "", tgl_lahir: "" });
                             setModalError("");
@@ -254,8 +298,8 @@ export default function MembersIndex() {
                     </button>
                 </div>
 
-                {/* Tabel Members */}
-                <div className="rounded-xl shadow-2xl bg-gray-800 border border-gray-700 mt-2">
+                {/* Table Card */}
+                <div className="max-w-5xl mx-auto rounded-2xl shadow-2xl bg-gray-800 border border-gray-700 mt-2 overflow-x-auto">
                     <table className="min-w-full table-fixed divide-y divide-gray-700">
                         <thead className="bg-gradient-to-r from-blue-900 via-blue-800 to-blue-700">
                             <tr>
@@ -280,20 +324,20 @@ export default function MembersIndex() {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredMembers.length === 0 ? (
+                            {paginatedMembers.length === 0 ? (
                                 <tr>
                                     <td colSpan={6} className="text-center py-8 text-gray-400">
                                         Member not found.
                                     </td>
                                 </tr>
                             ) : (
-                                filteredMembers.map((member, index) => (
+                                paginatedMembers.map((member, index) => (
                                     <tr
                                         key={member.id}
                                         className="hover:bg-blue-900/30 transition duration-200 border-b border-gray-700"
                                     >
                                         <td className="px-2 py-3 whitespace-nowrap text-xs text-blue-100 font-semibold text-center">
-                                            {index + 1}
+                                            {(currentPage - 1) * itemsPerPage + index + 1}
                                         </td>
                                         <td className="px-2 py-3 whitespace-nowrap text-xs text-blue-100 text-center">{member.no_ktp}</td>
                                         <td className="px-2 py-3 whitespace-nowrap text-xs text-blue-100 text-center">{member.nama}</td>
@@ -351,206 +395,245 @@ export default function MembersIndex() {
                         </tbody>
                     </table>
                 </div>
-            </div>
 
-            {/* Modal Add Member */}
-            <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Add Member" width="max-w-lg">
-                <form onSubmit={handleSubmitModal} className="space-y-4">
-                    <div>
-                        <label className="block text-blue-200 text-sm mb-1" htmlFor="no_ktp">ID Number</label>
-                        <input
-                            id="no_ktp"
-                            type="text"
-                            className="w-full px-3 py-2 rounded bg-gray-900 border border-blue-800 text-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-700"
-                            value={formModal.no_ktp}
-                            onChange={e => setFormModal({ ...formModal, no_ktp: e.target.value })}
-                            required
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-blue-200 text-sm mb-1" htmlFor="nama">Name</label>
-                        <input
-                            id="nama"
-                            type="text"
-                            className="w-full px-3 py-2 rounded bg-gray-900 border border-blue-800 text-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-700"
-                            value={formModal.nama}
-                            onChange={e => setFormModal({ ...formModal, nama: e.target.value })}
-                            required
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-blue-200 text-sm mb-1" htmlFor="alamat">Address</label>
-                        <input
-                            id="alamat"
-                            type="text"
-                            className="w-full px-3 py-2 rounded bg-gray-900 border border-blue-800 text-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-700"
-                            value={formModal.alamat}
-                            onChange={e => setFormModal({ ...formModal, alamat: e.target.value })}
-                            required
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-blue-200 text-sm mb-1" htmlFor="tgl_lahir">Date of Birth</label>
-                        <input
-                            id="tgl_lahir"
-                            type="date"
-                            className="w-full px-3 py-2 rounded bg-gray-900 border border-blue-800 text-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-700"
-                            value={formModal.tgl_lahir}
-                            onChange={e => setFormModal({ ...formModal, tgl_lahir: e.target.value })}
-                            required
-                        />
-                    </div>
-                    {modalError && (
-                        <div className="text-red-400 text-sm">{modalError}</div>
-                    )}
-                    <div className="flex justify-end gap-2 pt-2">
+                {/* Pagination */}
+                {totalPages > 1 && (
+                    <div className="flex justify-center items-center gap-2 mt-6 mb-2 select-none">
                         <button
-                            type="button"
-                            className="px-4 py-2 rounded bg-gray-700 text-blue-100 hover:bg-gray-600 transition"
-                            onClick={() => setIsAddModalOpen(false)}
+                            className={`px-3 py-1 rounded-lg font-semibold transition bg-gray-700 text-blue-100 hover:bg-blue-800 ${currentPage === 1 ? "opacity-50 cursor-not-allowed" : ""}`}
+                            onClick={() => setCurrentPage(currentPage - 1)}
+                            disabled={currentPage === 1}
                         >
-                            Cancel
+                            <svg className="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                            </svg>
+                            Prev
                         </button>
+                        {[...Array(totalPages)].map((_, idx) => (
+                            <button
+                                key={idx}
+                                className={`px-3 py-1 rounded-lg font-bold transition border-2 ${
+                                    currentPage === idx + 1
+                                        ? "bg-gradient-to-r from-blue-700 via-blue-800 to-blue-900 text-white border-blue-700 shadow-lg scale-105"
+                                        : "bg-gray-800 text-blue-200 border-gray-700 hover:bg-blue-900 hover:text-white"
+                                }`}
+                                onClick={() => setCurrentPage(idx + 1)}
+                            >
+                                {idx + 1}
+                            </button>
+                        ))}
                         <button
-                            type="submit"
-                            className="px-4 py-2 rounded bg-gradient-to-r from-blue-700 via-blue-800 to-blue-900 text-white font-semibold hover:from-blue-800 hover:to-blue-950 transition"
+                            className={`px-3 py-1 rounded-lg font-semibold transition bg-gray-700 text-blue-100 hover:bg-blue-800 ${currentPage === totalPages ? "opacity-50 cursor-not-allowed" : ""}`}
+                            onClick={() => setCurrentPage(currentPage + 1)}
+                            disabled={currentPage === totalPages}
                         >
-                            Save
+                            Next
+                            <svg className="w-4 h-4 inline-block ml-1" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                            </svg>
                         </button>
                     </div>
-                </form>
-            </Modal>
+                )}
 
-            {/* Modal Edit Member */}
-            <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Edit Member" width="max-w-lg">
-                <form onSubmit={handleEditModal} className="space-y-4">
-                    <div>
-                        <label className="block text-blue-200 text-sm mb-1" htmlFor="no_ktp_edit">ID Number</label>
-                        <input
-                            id="no_ktp_edit"
-                            type="text"
-                            className="w-full px-3 py-2 rounded bg-gray-900 border border-blue-800 text-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-700"
-                            value={formModal.no_ktp}
-                            onChange={e => setFormModal({ ...formModal, no_ktp: e.target.value })}
-                            required
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-blue-200 text-sm mb-1" htmlFor="nama_edit">Name</label>
-                        <input
-                            id="nama_edit"
-                            type="text"
-                            className="w-full px-3 py-2 rounded bg-gray-900 border border-blue-800 text-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-700"
-                            value={formModal.nama}
-                            onChange={e => setFormModal({ ...formModal, nama: e.target.value })}
-                            required
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-blue-200 text-sm mb-1" htmlFor="alamat_edit">Address</label>
-                        <input
-                            id="alamat_edit"
-                            type="text"
-                            className="w-full px-3 py-2 rounded bg-gray-900 border border-blue-800 text-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-700"
-                            value={formModal.alamat}
-                            onChange={e => setFormModal({ ...formModal, alamat: e.target.value })}
-                            required
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-blue-200 text-sm mb-1" htmlFor="tgl_lahir_edit">Date of Birth</label>
-                        <input
-                            id="tgl_lahir_edit"
-                            type="date"
-                            className="w-full px-3 py-2 rounded bg-gray-900 border border-blue-800 text-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-700"
-                            value={formModal.tgl_lahir}
-                            onChange={e => setFormModal({ ...formModal, tgl_lahir: e.target.value })}
-                            required
-                        />
-                    </div>
-                    {modalError && (
-                        <div className="text-red-400 text-sm">{modalError}</div>
-                    )}
-                    <div className="flex justify-end gap-2 pt-2">
-                        <button
-                            type="button"
-                            className="px-4 py-2 rounded bg-gray-700 text-blue-100 hover:bg-gray-600 transition"
-                            onClick={() => setIsEditModalOpen(false)}
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            className="px-4 py-2 rounded bg-gradient-to-r from-blue-700 via-blue-800 to-blue-900 text-white font-semibold hover:from-blue-800 hover:to-blue-950 transition"
-                        >
-                            Update
-                        </button>
-                    </div>
-                </form>
-            </Modal>
-
-            {/* Modal Delete Member */}
-            <Modal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} title="Delete Member" width="max-w-md">
-                <form onSubmit={handleDeleteMember} className="space-y-4">
-                    <div className="text-blue-100 text-center text-lg">
-                        Are you sure you want to delete this member?
-                    </div>
-                    <div className="flex justify-end gap-2 pt-2">
-                        <button
-                            type="button"
-                            className="px-4 py-2 rounded bg-gray-700 text-blue-100 hover:bg-gray-600 transition"
-                            onClick={() => setIsDeleteModalOpen(false)}
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            className="px-4 py-2 rounded bg-gradient-to-r from-red-700 via-red-800 to-red-900 text-white font-semibold hover:from-red-800 hover:to-red-950 transition"
-                        >
-                            Delete
-                        </button>
-                    </div>
-                </form>
-            </Modal>
-
-            {/* Modal Detail Member */}
-            <Modal isOpen={isDetailModalOpen} onClose={() => setIsDetailModalOpen(false)} title="Member Detail" width="max-w-md">
-                {detailMember && (
-                    <div className="space-y-4 text-blue-100">
+                {/* Modal Add Member */}
+                <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Add Member" width="max-w-lg">
+                    <form onSubmit={handleSubmitModal} className="space-y-4">
                         <div>
-                            <span className="font-semibold">ID Number:</span> {detailMember.no_ktp}
+                            <label className="block text-blue-200 text-sm mb-1" htmlFor="no_ktp">ID Number</label>
+                            <input
+                                id="no_ktp"
+                                type="text"
+                                className="w-full px-3 py-2 rounded bg-gray-900 border border-blue-800 text-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-700"
+                                value={formModal.no_ktp}
+                                onChange={e => setFormModal({ ...formModal, no_ktp: e.target.value })}
+                                required
+                            />
                         </div>
                         <div>
-                            <span className="font-semibold">Name:</span> {detailMember.nama}
+                            <label className="block text-blue-200 text-sm mb-1" htmlFor="nama">Name</label>
+                            <input
+                                id="nama"
+                                type="text"
+                                className="w-full px-3 py-2 rounded bg-gray-900 border border-blue-800 text-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-700"
+                                value={formModal.nama}
+                                onChange={e => setFormModal({ ...formModal, nama: e.target.value })}
+                                required
+                            />
                         </div>
                         <div>
-                            <span className="font-semibold">Address:</span> {detailMember.alamat}
+                            <label className="block text-blue-200 text-sm mb-1" htmlFor="alamat">Address</label>
+                            <input
+                                id="alamat"
+                                type="text"
+                                className="w-full px-3 py-2 rounded bg-gray-900 border border-blue-800 text-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-700"
+                                value={formModal.alamat}
+                                onChange={e => setFormModal({ ...formModal, alamat: e.target.value })}
+                                required
+                            />
                         </div>
                         <div>
-                            <span className="font-semibold">Date of Birth:</span> {detailMember.tgl_lahir}
+                            <label className="block text-blue-200 text-sm mb-1" htmlFor="tgl_lahir">Date of Birth</label>
+                            <input
+                                id="tgl_lahir"
+                                type="date"
+                                className="w-full px-3 py-2 rounded bg-gray-900 border border-blue-800 text-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-700"
+                                value={formModal.tgl_lahir}
+                                onChange={e => setFormModal({ ...formModal, tgl_lahir: e.target.value })}
+                                required
+                            />
                         </div>
-                        <div>
-                            <span className="font-semibold">Join Date:</span>{" "}
-                            {detailMember.created_at
-                                ? new Date(detailMember.created_at).toLocaleDateString("en-US", {
-                                    year: "numeric",
-                                    month: "long",
-                                    day: "numeric"
-                                })
-                                : "-"}
-                        </div>
-                        <div className="flex justify-end pt-2">
+                        {modalError && (
+                            <div className="text-red-400 text-sm">{modalError}</div>
+                        )}
+                        <div className="flex justify-end gap-2 pt-2">
                             <button
                                 type="button"
                                 className="px-4 py-2 rounded bg-gray-700 text-blue-100 hover:bg-gray-600 transition"
-                                onClick={() => setIsDetailModalOpen(false)}
+                                onClick={() => setIsAddModalOpen(false)}
                             >
-                                Close
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                className="px-4 py-2 rounded bg-gradient-to-r from-blue-700 via-blue-800 to-blue-900 text-white font-semibold hover:from-blue-800 hover:to-blue-950 transition"
+                            >
+                                Save
                             </button>
                         </div>
-                    </div>
-                )}
-            </Modal>
+                    </form>
+                </Modal>
+
+                {/* Modal Edit Member */}
+                <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Edit Member" width="max-w-lg">
+                    <form onSubmit={handleEditModal} className="space-y-4">
+                        <div>
+                            <label className="block text-blue-200 text-sm mb-1" htmlFor="no_ktp_edit">ID Number</label>
+                            <input
+                                id="no_ktp_edit"
+                                type="text"
+                                className="w-full px-3 py-2 rounded bg-gray-900 border border-blue-800 text-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-700"
+                                value={formModal.no_ktp}
+                                onChange={e => setFormModal({ ...formModal, no_ktp: e.target.value })}
+                                required
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-blue-200 text-sm mb-1" htmlFor="nama_edit">Name</label>
+                            <input
+                                id="nama_edit"
+                                type="text"
+                                className="w-full px-3 py-2 rounded bg-gray-900 border border-blue-800 text-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-700"
+                                value={formModal.nama}
+                                onChange={e => setFormModal({ ...formModal, nama: e.target.value })}
+                                required
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-blue-200 text-sm mb-1" htmlFor="alamat_edit">Address</label>
+                            <input
+                                id="alamat_edit"
+                                type="text"
+                                className="w-full px-3 py-2 rounded bg-gray-900 border border-blue-800 text-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-700"
+                                value={formModal.alamat}
+                                onChange={e => setFormModal({ ...formModal, alamat: e.target.value })}
+                                required
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-blue-200 text-sm mb-1" htmlFor="tgl_lahir_edit">Date of Birth</label>
+                            <input
+                                id="tgl_lahir_edit"
+                                type="date"
+                                className="w-full px-3 py-2 rounded bg-gray-900 border border-blue-800 text-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-700"
+                                value={formModal.tgl_lahir}
+                                onChange={e => setFormModal({ ...formModal, tgl_lahir: e.target.value })}
+                                required
+                            />
+                        </div>
+                        {modalError && (
+                            <div className="text-red-400 text-sm">{modalError}</div>
+                        )}
+                        <div className="flex justify-end gap-2 pt-2">
+                            <button
+                                type="button"
+                                className="px-4 py-2 rounded bg-gray-700 text-blue-100 hover:bg-gray-600 transition"
+                                onClick={() => setIsEditModalOpen(false)}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                className="px-4 py-2 rounded bg-gradient-to-r from-blue-700 via-blue-800 to-blue-900 text-white font-semibold hover:from-blue-800 hover:to-blue-950 transition"
+                            >
+                                Update
+                            </button>
+                        </div>
+                    </form>
+                </Modal>
+
+                {/* Modal Delete Member */}
+                <Modal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} title="Delete Member" width="max-w-md">
+                    <form onSubmit={handleDeleteMember} className="space-y-4">
+                        <div className="text-blue-100 text-center text-lg">
+                            Are you sure you want to delete this member?
+                        </div>
+                        <div className="flex justify-end gap-2 pt-2">
+                            <button
+                                type="button"
+                                className="px-4 py-2 rounded bg-gray-700 text-blue-100 hover:bg-gray-600 transition"
+                                onClick={() => setIsDeleteModalOpen(false)}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                className="px-4 py-2 rounded bg-gradient-to-r from-red-700 via-red-800 to-red-900 text-white font-semibold hover:from-red-800 hover:to-red-950 transition"
+                            >
+                                Delete
+                            </button>
+                        </div>
+                    </form>
+                </Modal>
+
+                {/* Modal Detail Member */}
+                <Modal isOpen={isDetailModalOpen} onClose={() => setIsDetailModalOpen(false)} title="Member Detail" width="max-w-md">
+                    {detailMember && (
+                        <div className="space-y-4 text-blue-100">
+                            <div>
+                                <span className="font-semibold">ID Number:</span> {detailMember.no_ktp}
+                            </div>
+                            <div>
+                                <span className="font-semibold">Name:</span> {detailMember.nama}
+                            </div>
+                            <div>
+                                <span className="font-semibold">Address:</span> {detailMember.alamat}
+                            </div>
+                            <div>
+                                <span className="font-semibold">Date of Birth:</span> {detailMember.tgl_lahir}
+                            </div>
+                            <div>
+                                <span className="font-semibold">Join Date:</span>{" "}
+                                {detailMember.created_at
+                                    ? new Date(detailMember.created_at).toLocaleDateString("en-US", {
+                                        year: "numeric",
+                                        month: "long",
+                                        day: "numeric"
+                                    })
+                                    : "-"}
+                            </div>
+                            <div className="flex justify-end pt-2">
+                                <button
+                                    type="button"
+                                    className="px-4 py-2 rounded bg-gray-700 text-blue-100 hover:bg-gray-600 transition"
+                                    onClick={() => setIsDetailModalOpen(false)}
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </Modal>
+            </div>
         </>
     );
 }

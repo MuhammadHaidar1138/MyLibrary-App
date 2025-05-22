@@ -1,5 +1,6 @@
 import React from "react";
-import { FaHome, FaBook, FaUser, FaCog, FaSignOutAlt } from "react-icons/fa";
+import { FaHome, FaBook, FaUser, FaCog, FaSignOutAlt, FaExchangeAlt, FaMoneyBillWave, FaMoneyBillWaveAlt } from "react-icons/fa";
+import { FaMoneyBill1Wave } from "react-icons/fa6";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 
 const Sidebar = () => {
@@ -72,24 +73,24 @@ const Sidebar = () => {
               isActive("/lending") ? "bg-gray-700 text-purple-500" : "hover:bg-gray-700"
             }`}
           >
-            <FaUser className={`mr-3 text-lg ${isActive("/lending") ? "text-purple-500" : ""}`} />
+            <FaExchangeAlt className={`mr-3 text-lg ${isActive("/lending") ? "text-purple-500" : ""}`} />
             <span className={`text-base font-medium ${isActive("/lending") ? "text-purple-500" : ""}`}>
               Lendings
             </span>
           </Link>
         </li>
 
-        {/* Settings */}
+        {/* Penalty */}
         <li>
           <Link
-            to="/settings"
+            to="/penalty"
             className={`flex items-center p-3 rounded-lg cursor-pointer transition-all duration-300 ${
-              isActive("/settings") ? "bg-gray-700 text-purple-500" : "hover:bg-gray-700"
+              isActive("/penalty") ? "bg-gray-700 text-purple-500" : "hover:bg-gray-700"
             }`}
           >
-            <FaCog className={`mr-3 text-lg ${isActive("/settings") ? "text-purple-500" : ""}`} />
-            <span className={`text-base font-medium ${isActive("/settings") ? "text-purple-500" : ""}`}>
-              Settings
+            <FaMoneyBillWave className={`mr-3 text-lg ${isActive("/penalty") ? "text-purple-500" : ""}`} />
+            <span className={`text-base font-medium ${isActive("/penalty") ? "text-purple-500" : ""}`}>
+              Penalty
             </span>
           </Link>
         </li>
