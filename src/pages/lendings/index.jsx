@@ -6,6 +6,10 @@ import Modal from "../../components/Modal";
 import { Bar } from "react-chartjs-2";
 import { Chart, BarElement, CategoryScale, LinearScale, Tooltip, Legend } from "chart.js";
 Chart.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend);
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
+import jsPDF from "jspdf";
+import "jspdf-autotable";
 
 export default function LendingsIndex() {
     const [lendings, setLendings] = useState([]);
@@ -15,6 +19,7 @@ export default function LendingsIndex() {
     const [alert, setAlert] = useState("");
     const [accordionOpen, setAccordionOpen] = useState(false);
 
+    // State form peminjaman
     const [formModal, setFormModal] = useState({
         id_buku: "",
         id_member: "",
@@ -22,9 +27,11 @@ export default function LendingsIndex() {
         tgl_pengembalian: "",
     });
 
+    // State modal detail
     const [detailModalOpen, setDetailModalOpen] = useState(false);
     const [detailLending, setDetailLending] = useState(null);
 
+    // State denda kerusakan atau terlambat
     const [returnedLendings, setReturnedLendings] = useState({});
     const [penaltyModalOpen, setPenaltyModalOpen] = useState(false);
     const [penaltyForm, setPenaltyForm] = useState({
@@ -38,9 +45,11 @@ export default function LendingsIndex() {
 
     const [chartAccordionOpen, setChartAccordionOpen] = useState(false);
 
+    // State untuk mengsearch peminjaman
     const [search, setSearch] = useState("");
     const [filteredLendings, setFilteredLendings] = useState([]);
 
+    // State untuk pagination
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
 
@@ -69,6 +78,7 @@ export default function LendingsIndex() {
                 );
             });
 
+        // Fetch data buku untuk menampilkan data buku(judul)
         axios.get(`${API_URL}buku`, {
             headers: {
                 Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -91,6 +101,7 @@ export default function LendingsIndex() {
                 );
             });
 
+        // Fetch data members untuk menampilkan data member(nama)
         axios.get(`${API_URL}member`, {
             headers: {
                 Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -122,19 +133,19 @@ export default function LendingsIndex() {
                 Accept: 'application/json'
             }
         })
-        .then(() => {
-            setAlert({ message: "Lending successfully created.", type: "success" });
-            setFormModal({ id_buku: "", id_member: "", tgl_pinjam: "", tgl_pengembalian: "" });
-            fetchData();
-        })
-        .catch(err => {
-            if (err.response && err.response.status === 401) {
-                localStorage.removeItem("token");
-                navigate("/login");
-            }
-            setAlert({ message: "Failed to create lending.", type: "error" });
-            setTimeout(() => setAlert(""), 3000);
-        })
+            .then(() => {
+                setAlert({ message: "Lending successfully created.", type: "success" });
+                setFormModal({ id_buku: "", id_member: "", tgl_pinjam: "", tgl_pengembalian: "" });
+                fetchData();
+            })
+            .catch(err => {
+                if (err.response && err.response.status === 401) {
+                    localStorage.removeItem("token");
+                    navigate("/login");
+                }
+                setAlert({ message: "Failed to create lending.", type: "error" });
+                setTimeout(() => setAlert(""), 3000);
+            })
     }
 
     function handlePenaltySubmit(e) {
@@ -165,18 +176,18 @@ export default function LendingsIndex() {
                 }
             }
         )
-        .then(() => {
-            setAlert({ message: "Penalty successfully added.", type: "success" });
-        })
-        .catch(err => {
-            setAlert({
-                message:
-                    err.response?.data?.message ||
-                    err.response?.data?.error ||
-                    "Failed to add penalty.",
-                type: "error"
+            .then(() => {
+                setAlert({ message: "Penalty successfully added.", type: "success" });
+            })
+            .catch(err => {
+                setAlert({
+                    message:
+                        err.response?.data?.message ||
+                        err.response?.data?.error ||
+                        "Failed to add penalty.",
+                    type: "error"
+                });
             });
-        });
 
         setPenaltyModalOpen(false);
         setPenaltyForm({
@@ -189,7 +200,7 @@ export default function LendingsIndex() {
         });
     }
 
-    // Chart data calculation
+    // Chart per bulan
     const lendingPerMonth = {};
     lendings.forEach(lending => {
         const month = new Date(lending.tgl_pinjam).toLocaleString("default", { month: "short", year: "numeric" });
@@ -204,8 +215,8 @@ export default function LendingsIndex() {
             {
                 label: "Total Lending",
                 data: chartData,
-                backgroundColor: "rgba(59, 130, 246, 0.7)", // Tailwind blue-600
-                borderColor: "rgba(37, 99, 235, 1)", // Tailwind blue-700
+                backgroundColor: "rgba(59, 130, 246, 0.7)",
+                borderColor: "rgba(37, 99, 235, 1)",
                 borderWidth: 2,
                 borderRadius: 8,
                 maxBarThickness: 32,
@@ -259,15 +270,67 @@ export default function LendingsIndex() {
         }
     }, [search, lendings, books, members]);
 
-    // Pagination logic
+    // Pagination
     const indexOfLastItem = currentPage * itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
     const currentLendings = filteredLendings.slice(indexOfFirstItem, indexOfLastItem);
     const totalPages = Math.ceil(filteredLendings.length / itemsPerPage);
 
+    // Export data ke Excel
+    function exportExcel() {
+        const formatedData = filteredLendings.map((lending, index) => ({
+            "No": index + 1,
+            "Book ID": lending.id_buku,
+            "Book Title": books.find(b => b.id === lending.id_buku)?.judul || "",
+            "Member ID": lending.id_member,
+            "Member Name": members.find(m => m.id === lending.id_member)?.nama || "",
+            "Loan Date": lending.tgl_pinjam,
+            "Return Date": lending.tgl_pengembalian,
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(formatedData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Lendings");
+        const excelBuffer = XLSX.write(workbook, {
+            bookType: "xlsx",
+            type: "array"
+        });
+        const file = new Blob([excelBuffer], {
+            type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        });
+        saveAs(file, "lendings_data.xlsx");
+    }
+
+    // Export riwayat peminjaman member ke PDF
+    function exportMemberHistoryPDF() {
+        if (!detailLending) return;
+        const member = members.find(m => m.id === detailLending.id_member);
+        const history = lendings.filter(l => l.id_member === detailLending.id_member);
+
+        const doc = new jsPDF();
+        doc.setFontSize(16);
+        doc.text("Borrowing History", 14, 16);
+        doc.setFontSize(12);
+        doc.text(`Member: ${member?.nama || detailLending.id_member}`, 14, 26);
+
+        doc.autoTable({
+            startY: 32,
+            head: [["Book Title", "Loan Date", "Return Date"]],
+            body: history.map(l => [
+                books.find(b => b.id === l.id_buku)?.judul || l.id_buku,
+                l.tgl_pinjam,
+                l.tgl_pengembalian
+            ]),
+            styles: { fontSize: 10 },
+            headStyles: { fillColor: [37, 99, 235] },
+        });
+
+        doc.save(`borrowing_history_${member?.nama || detailLending.id_member}.pdf`);
+    }
+
     return (
         <>
-            {/* Alerts */}
+            {/* Bagian alert/error */}
             {error && (
                 <div className="bg-red-500 text-white p-3 rounded-lg mb-4 shadow-lg">
                     {error}
@@ -299,14 +362,13 @@ export default function LendingsIndex() {
                 </div>
             )}
 
-            {/* Top Section: Create, Rules, Chart */}
             <div className="flex flex-col md:flex-row justify-center gap-8 mb-12">
-                {/* Create Lending Card */}
+                {/* Form tambah peminjaman */}
                 <div className="w-full max-w-md bg-gradient-to-br from-blue-900 via-blue-800 to-blue-700 border border-blue-900 rounded-2xl shadow-2xl p-6 flex flex-col h-fit">
                     <h2 className="text-xl font-bold text-blue-100 mb-4 flex items-center gap-2">
                         <svg className="h-7 w-7 text-blue-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <circle cx="12" cy="12" r="10" strokeWidth="2" stroke="currentColor" fill="#2563eb" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h8M8 16h8M8 8h8" stroke="#fff"/>
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h8M8 16h8M8 8h8" stroke="#fff" />
                         </svg>
                         Create New Lending
                     </h2>
@@ -387,9 +449,9 @@ export default function LendingsIndex() {
                         </button>
                     </form>
                 </div>
-                {/* Lending Rules & Chart */}
+
+                {/* Card aturan peminjaman */}
                 <div className="flex flex-col gap-4 w-full max-w-xs">
-                    {/* Lending Rules Card */}
                     <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-700 border border-gray-700 rounded-2xl shadow-2xl p-4 flex flex-col h-fit">
                         <h3 className="text-lg font-bold text-blue-300 mb-3 text-center">Lending Rules</h3>
                         <ul className="list-disc list-inside text-blue-100 text-sm space-y-3">
@@ -399,7 +461,7 @@ export default function LendingsIndex() {
                             <li>Each member can borrow a maximum of 3 books at a time.</li>
                         </ul>
                     </div>
-                    {/* Lending Chart Accordion */}
+                    {/* Bagian chart peminjaman per bulan */}
                     <div className="w-full">
                         <button
                             className="w-full flex justify-between items-center px-3 py-2 bg-gradient-to-r from-blue-900 via-blue-800 to-blue-700 text-blue-200 font-semibold text-sm rounded-xl focus:outline-none shadow"
@@ -424,7 +486,6 @@ export default function LendingsIndex() {
                 </div>
             </div>
 
-            {/* Divider */}
             <div className="max-w-5xl mx-auto my-8">
                 <div className="flex items-center">
                     <div className="flex-1 border-t-2 border-blue-900" />
@@ -433,9 +494,20 @@ export default function LendingsIndex() {
                 </div>
             </div>
 
-            {/* Search & Table Card */}
+            <div className="flex justify-end mb-2 max-w-5xl mx-auto">
+                <button
+                    onClick={exportExcel}
+                    className="flex items-center gap-2 bg-gradient-to-r from-green-700 via-green-800 to-green-900 hover:from-green-800 hover:to-green-950 text-white font-semibold px-4 py-2 rounded-lg shadow transition duration-200 border border-green-900"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 16v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2M8 12h8m0 0l-3-3m3 3l-3 3" />
+                    </svg>
+                    Export Excel
+                </button>
+            </div>
+
+            {/* Bagian search & tabel */}
             <div className="max-w-5xl mx-auto bg-gradient-to-br from-gray-900 via-gray-800 to-gray-700 border border-blue-900 rounded-2xl shadow-2xl p-6">
-                {/* Search Bar */}
                 <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-4">
                     <div className="flex gap-2 w-full md:w-auto">
                         <input
@@ -458,7 +530,6 @@ export default function LendingsIndex() {
                     </div>
                 </div>
 
-                {/* Accordion Table */}
                 <div className="rounded-xl shadow-xl bg-gray-800 border border-gray-700 mt-2 overflow-hidden">
                     <button
                         className="w-full flex justify-between items-center px-6 py-4 bg-gradient-to-r from-blue-900 via-blue-800 to-blue-700 text-blue-200 font-bold text-lg focus:outline-none"
@@ -476,7 +547,7 @@ export default function LendingsIndex() {
                     </button>
                     {accordionOpen && (
                         <div>
-                            {/* Pagination Controls */}
+                            {/* Bagian pagination */}
                             <div className="flex items-center justify-between px-6 py-2 bg-gray-900 border-b border-gray-700">
                                 <div className="flex gap-1">
                                     <button
@@ -492,11 +563,10 @@ export default function LendingsIndex() {
                                     {[...Array(totalPages)].map((_, idx) => (
                                         <button
                                             key={idx}
-                                            className={`px-3 py-1 rounded-lg font-bold transition border-2 ${
-                                                currentPage === idx + 1
+                                            className={`px-3 py-1 rounded-lg font-bold transition border-2 ${currentPage === idx + 1
                                                     ? "bg-gradient-to-r from-blue-700 via-blue-800 to-blue-900 text-white border-blue-700 shadow-lg scale-105"
                                                     : "bg-gray-800 text-blue-200 border-gray-700 hover:bg-blue-900 hover:text-white"
-                                            }`}
+                                                }`}
                                             onClick={() => setCurrentPage(idx + 1)}
                                         >
                                             {idx + 1}
@@ -658,7 +728,7 @@ export default function LendingsIndex() {
                 </div>
             </div>
 
-            {/* Modal Detail */}
+            {/* Modal detail */}
             <Modal
                 isOpen={detailModalOpen}
                 onClose={() => setDetailModalOpen(false)}
@@ -695,6 +765,45 @@ export default function LendingsIndex() {
                             <span className="font-semibold">Return Date:</span>
                             <div className="ml-2 break-words">{detailLending.tgl_pengembalian}</div>
                         </div>
+
+                        {/* Riwayat peminjaman member */}
+                        <div className="md:col-span-2 mt-4">
+                            <span className="font-semibold block mb-2">Borrowing History:</span>
+                            <button
+                                onClick={exportMemberHistoryPDF}
+                                className="mb-2 px-3 py-1 rounded bg-gradient-to-r from-red-700 via-red-800 to-red-900 text-white font-semibold text-xs shadow hover:from-red-800 hover:to-red-950 transition"
+                            >
+                                Export PDF
+                            </button>
+                            <div className="max-h-40 overflow-y-auto border border-blue-900 rounded-lg bg-gray-900 p-2">
+                                <table className="min-w-full text-xs text-blue-100">
+                                    <thead>
+                                        <tr>
+                                            <th className="text-left py-1 px-2">Book Title</th>
+                                            <th className="text-left py-1 px-2">Loan Date</th>
+                                            <th className="text-left py-1 px-2">Return Date</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {lendings
+                                            .filter(l => l.id_member === detailLending.id_member)
+                                            .map((l, idx) => (
+                                                <tr key={l.id} className={l.id === detailLending.id ? "bg-blue-900/30" : ""}>
+                                                    <td className="py-1 px-2">
+                                                        {books.find(b => b.id === l.id_buku)?.judul || l.id_buku}
+                                                    </td>
+                                                    <td className="py-1 px-2">{l.tgl_pinjam}</td>
+                                                    <td className="py-1 px-2">{l.tgl_pengembalian}</td>
+                                                </tr>
+                                            ))}
+                                    </tbody>
+                                </table>
+                                {lendings.filter(l => l.id_member === detailLending.id_member).length === 0 && (
+                                    <div className="text-gray-400 py-2 text-center">No history found.</div>
+                                )}
+                            </div>
+                        </div>
+
                         <div className="md:col-span-2 flex justify-end pt-2">
                             <button
                                 type="button"
@@ -708,7 +817,7 @@ export default function LendingsIndex() {
                 )}
             </Modal>
 
-            {/* Modal Penalty */}
+            {/* Modal denda */}
             <Modal
                 isOpen={penaltyModalOpen}
                 onClose={() => setPenaltyModalOpen(false)}

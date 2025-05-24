@@ -11,7 +11,6 @@ export default function Dashboard() {
     ]);
     const [monthly, setMonthly] = useState([]);
 
-    // SVG icons
     const icons = [
         (
             <svg className="w-7 h-7 text-blue-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -40,7 +39,7 @@ export default function Dashboard() {
     ];
 
     useEffect(() => {
-        // Fetch all stats in parallel
+        // Mengammbil data statistik dan data bulanan dari API
         const token = localStorage.getItem("token");
         Promise.all([
             axios.get(`${API_URL}buku`, { headers: { Authorization: `Bearer ${token}` } }),
@@ -52,12 +51,17 @@ export default function Dashboard() {
                 { ...stats[0], value: books.data.length, icon: icons[0] },
                 { ...stats[1], value: members.data.length, icon: icons[1] },
                 { ...stats[2], value: lendings.data.data?.length || lendings.data.length, icon: icons[2] },
-                { ...stats[3], value: penalties.data.length, icon: icons[3] }
+                { 
+                    ...stats[3], 
+                    value: Array.isArray(penalties.data) 
+                        ? penalties.data.length 
+                        : (penalties.data.data?.length || 0), 
+                    icon: icons[3] 
+                }
             ]);
-            // Monthly chart data
+            
             const lendingsArr = lendings.data.data || lendings.data;
             const membersArr = members.data;
-            // Group by month
             const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
             const now = new Date();
             const last6 = [];
@@ -65,13 +69,13 @@ export default function Dashboard() {
                 const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
                 last6.push({ month: months[d.getMonth()], year: d.getFullYear(), lendings: 0, members: 0 });
             }
-            // Count lendings per month
+            // Untuk menghitung jumlah peminjaman per bulan
             lendingsArr.forEach(l => {
                 const date = new Date(l.tanggal_pinjam || l.created_at);
                 const idx = last6.findIndex(m => m.year === date.getFullYear() && m.month === months[date.getMonth()]);
                 if (idx !== -1) last6[idx].lendings += 1;
             });
-            // Count members per month
+            // Untuk menghitung jumlah member baru per bulan
             membersArr.forEach(m => {
                 const date = new Date(m.created_at);
                 const idx = last6.findIndex(mm => mm.year === date.getFullYear() && mm.month === months[date.getMonth()]);
@@ -79,12 +83,11 @@ export default function Dashboard() {
             });
             setMonthly(last6);
         });
-        // eslint-disable-next-line
     }, []);
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-700 py-10 px-2 md:px-8">
-            {/* Header */}
+            {/* Header Dashboard */}
             <div className="max-w-5xl mx-auto mb-8">
                 <div className="flex items-center gap-4 bg-gradient-to-r from-blue-900 via-blue-800 to-blue-700 rounded-2xl shadow-2xl p-6 border border-blue-900">
                     <span className="inline-flex items-center justify-center h-14 w-14 rounded-full shadow-lg bg-gradient-to-br from-blue-700 via-blue-600 to-blue-400">
@@ -100,7 +103,7 @@ export default function Dashboard() {
                 </div>
             </div>
 
-            {/* Stats Cards */}
+            {/* Kartu Statistik */}
             <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
                 {stats.map((stat, idx) => (
                     <div
@@ -114,7 +117,6 @@ export default function Dashboard() {
                 ))}
             </div>
 
-            {/* Divider */}
             <div className="max-w-5xl mx-auto my-8">
                 <div className="flex items-center">
                     <div className="flex-1 border-t-2 border-blue-900" />
@@ -123,7 +125,6 @@ export default function Dashboard() {
                 </div>
             </div>
 
-            {/* Chart Section */}
             <div className="max-w-5xl mx-auto bg-gradient-to-br from-gray-900 via-gray-800 to-gray-700 border border-blue-900 rounded-2xl shadow-2xl p-6">
                 <h2 className="text-xl font-bold text-blue-200 mb-4">Monthly Activity</h2>
                 <div className="overflow-x-auto">
@@ -155,12 +156,10 @@ export default function Dashboard() {
                         </tbody>
                     </table>
                 </div>
-                {/* Simple chart bar */}
+  
                 <div className="mt-8 flex gap-4 items-end h-32">
                     {(() => {
-                        // Cari nilai lendings maksimum untuk normalisasi tinggi bar
                         const maxLendings = Math.max(...monthly.map(row => row.lendings), 1);
-                        // Maksimal tinggi bar (px)
                         const maxBarHeight = 96;
                         return monthly.map((row, idx) => (
                             <div key={row.month + row.year} className="flex flex-col items-center flex-1">
@@ -179,9 +178,8 @@ export default function Dashboard() {
                 </div>
             </div>
 
-            {/* Footer */}
             <div className="max-w-5xl mx-auto mt-12 text-center text-blue-400 text-xs opacity-70">
-                &copy; {new Date().getFullYear()} MyLibrary App &mdash; Dashboard UI by GitHub Copilot
+                &copy; {new Date().getFullYear()} MyLibrary App
             </div>
         </div>
     );
