@@ -90,7 +90,7 @@ const Sidebar = () => {
           >
             <FaMoneyBillWave className={`mr-3 text-lg ${isActive("/penalty") ? "text-purple-500" : ""}`} />
             <span className={`text-base font-medium ${isActive("/penalty") ? "text-purple-500" : ""}`}>
-              Penalty
+              Penaltys
             </span>
           </Link>
         </li>
