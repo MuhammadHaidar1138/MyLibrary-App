@@ -227,7 +227,7 @@ export default function MembersIndex() {
                         <span className="inline-flex items-center justify-center h-14 w-14 rounded-full shadow-lg bg-gradient-to-br from-blue-700 via-blue-600 to-blue-400">
                             <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <circle cx="12" cy="12" r="10" strokeWidth="2" stroke="currentColor" fill="#2563eb" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h8M8 16h8M8 8h8" stroke="#fff"/>
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h8M8 16h8M8 8h8" stroke="#fff" />
                             </svg>
                         </span>
                         <div>
@@ -412,11 +412,10 @@ export default function MembersIndex() {
                         {[...Array(totalPages)].map((_, idx) => (
                             <button
                                 key={idx}
-                                className={`px-3 py-1 rounded-lg font-bold transition border-2 ${
-                                    currentPage === idx + 1
-                                        ? "bg-gradient-to-r from-blue-700 via-blue-800 to-blue-900 text-white border-blue-700 shadow-lg scale-105"
-                                        : "bg-gray-800 text-blue-200 border-gray-700 hover:bg-blue-900 hover:text-white"
-                                }`}
+                                className={`px-3 py-1 rounded-lg font-bold transition border-2 ${currentPage === idx + 1
+                                    ? "bg-gradient-to-r from-blue-700 via-blue-800 to-blue-900 text-white border-blue-700 shadow-lg scale-105"
+                                    : "bg-gray-800 text-blue-200 border-gray-700 hover:bg-blue-900 hover:text-white"
+                                    }`}
                                 onClick={() => setCurrentPage(idx + 1)}
                             >
                                 {idx + 1}
@@ -443,12 +442,26 @@ export default function MembersIndex() {
                             <input
                                 id="no_ktp"
                                 type="text"
+                                inputMode="numeric"
+                                maxLength={16}
                                 className="w-full px-3 py-2 rounded bg-gray-900 border border-blue-800 text-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-700"
                                 value={formModal.no_ktp}
-                                onChange={e => setFormModal({ ...formModal, no_ktp: e.target.value })}
+                                onChange={e => {
+                                    setFormModal({ ...formModal, no_ktp: e.target.value });
+
+                                    if (e.target.value.length !== 16) {
+                                        setModalError("No. KTP harus terdiri dari 16 digit.");
+                                    } else {
+                                        setModalError("");
+                                    }
+                                }}
                                 required
                             />
+
                         </div>
+                        {modalError && (
+                            <div className="text-red-400 text-sm">{modalError}</div>
+                        )}
                         <div>
                             <label className="block text-blue-200 text-sm mb-1" htmlFor="nama">Name</label>
                             <input
@@ -482,9 +495,6 @@ export default function MembersIndex() {
                                 required
                             />
                         </div>
-                        {modalError && (
-                            <div className="text-red-400 text-sm">{modalError}</div>
-                        )}
                         <div className="flex justify-end gap-2 pt-2">
                             <button
                                 type="button"
@@ -495,7 +505,11 @@ export default function MembersIndex() {
                             </button>
                             <button
                                 type="submit"
-                                className="px-4 py-2 rounded bg-gradient-to-r from-blue-700 via-blue-800 to-blue-900 text-white font-semibold hover:from-blue-800 hover:to-blue-950 transition"
+                                disabled={formModal.no_ktp.length !== 16}
+                                className={`px-4 py-2 rounded font-semibold transition ${formModal.no_ktp.length !== 16
+                                        ? "bg-gray-600 text-gray-300 cursor-not-allowed"
+                                        : "bg-gradient-to-r from-blue-700 via-blue-800 to-blue-900 text-white hover:from-blue-800 hover:to-blue-950"
+                                    }`}
                             >
                                 Save
                             </button>

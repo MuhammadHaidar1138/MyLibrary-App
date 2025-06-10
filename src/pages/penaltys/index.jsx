@@ -3,6 +3,8 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { API_URL } from "../../constan";
 import Modal from "../../components/Modal";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 
 export default function PenaltysIndex() {
     const [penalties, setPenalties] = useState([]);
@@ -120,6 +122,45 @@ export default function PenaltysIndex() {
         currentPage * itemsPerPage
     );
 
+    function exportExcel() {
+        // Menghitung jumlah data denda berdasarkan jenis
+        // Membuat objek kosong
+        const typeCounts = {};
+        penalties.forEach(penalty => {
+            // Jika data jenis nya sudah ada, maka pake data itu lalu ditambah 1, jika belum maka jadi 0 lalu ditambah 1 / buat data baru
+            typeCounts[penalty.jenis_denda] = (typeCounts[penalty.jenis_denda] || 0) + 1;
+        });
+
+        // Buat format data (column) apa saja yang akan dibuat pada excel
+        const formattedData = Object.entries(typeCounts).map(([type, count], index) => ({
+            "No": index + 1,
+            "Jenis Denda": type,
+            "Jumlah Data": count
+        }));
+
+        // Menambahkan total dibawahnya
+        formattedData.push({
+            "No": "",
+            "Jenis Denda": "Total Keseluruhan",
+            "Jumlah Data": penalties.length
+        });
+
+        // ubah array of object jadi worksheet Excel
+        const worksheet = XLSX.utils.json_to_sheet(formattedData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Rekap Denda");
+        const excelBuffer = XLSX.write(workbook, {
+            bookType: "xlsx",
+            type: "array"
+        });
+        // Simpan file dengan ekstensi .xlsx
+        const file = new Blob([excelBuffer], {
+            type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        });
+        // unduh dengan nama file
+        saveAs(file, "rekap_denda.xlsx");
+    }
+
     function handlePageChange(page) {
         if (page >= 1 && page <= totalPages) setCurrentPage(page);
     }
@@ -137,7 +178,7 @@ export default function PenaltysIndex() {
                     <span className="inline-flex items-center justify-center h-14 w-14 rounded-full shadow-lg bg-gradient-to-br from-blue-700 via-blue-600 to-blue-400">
                         <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <circle cx="12" cy="12" r="10" strokeWidth="2" stroke="currentColor" fill="#2563eb" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h8M8 16h8M8 8h8" stroke="#fff"/>
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h8M8 16h8M8 8h8" stroke="#fff" />
                         </svg>
                     </span>
                     <div>
@@ -168,6 +209,19 @@ export default function PenaltysIndex() {
                 <div className="hidden md:block">
                     <span className="text-blue-300 text-sm">{filteredPenalties.length} result(s)</span>
                 </div>
+            </div>
+
+            {/* Button excel */}
+            <div className="flex justify-end mb-2 max-w-5xl mx-auto">
+                <button
+                    onClick={exportExcel}
+                    className="flex items-center gap-2 bg-gradient-to-r from-green-700 via-green-800 to-green-900 hover:from-green-800 hover:to-green-950 text-white font-semibold px-4 py-2 rounded-lg shadow transition duration-200 border border-green-900"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 16v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2M8 12h8m0 0l-3-3m3 3l-3 3" />
+                    </svg>
+                    Export Excel
+                </button>
             </div>
 
             {/* Table Card */}
@@ -249,11 +303,10 @@ export default function PenaltysIndex() {
                     {[...Array(totalPages)].map((_, idx) => (
                         <button
                             key={idx}
-                            className={`px-3 py-1 rounded-lg font-bold transition border-2 ${
-                                currentPage === idx + 1
+                            className={`px-3 py-1 rounded-lg font-bold transition border-2 ${currentPage === idx + 1
                                     ? "bg-gradient-to-r from-blue-700 via-blue-800 to-blue-900 text-white border-blue-700 shadow-lg scale-105"
                                     : "bg-gray-800 text-blue-200 border-gray-700 hover:bg-blue-900 hover:text-white"
-                            }`}
+                                }`}
                             onClick={() => handlePageChange(idx + 1)}
                         >
                             {idx + 1}

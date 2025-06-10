@@ -27,9 +27,34 @@ export default function BooksIndex() {
     const [detailBook, setDetailBook] = useState(null);
     const [search, setSearch] = useState("");
 
-    // Pagination
+    const [authorFilter, setAuthorFilter] = useState("");
+
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 8;
+
+    // filter boolean berfungsi untuk menghilangkan yang undefined atau null
+    // set supaya tidak ada duplikat / menghilangkan yang namanya sama (bersifat objek)
+    // array.from untuk mengubah set yang awalnya objek menjadi array
+    const uniqueAuthors = Array.from(new Set(books.map(book => book.pengarang).filter(Boolean)));
+
+    const filteredBooks = books.filter(
+        (book) => {
+            const matchSearch =
+                book.judul?.toLowerCase().includes(search.toLowerCase()) ||
+                book.pengarang?.toLowerCase().includes(search.toLowerCase()) ||
+                book.no_rak?.toLowerCase().includes(search.toLowerCase());
+            // Jika authorFilter tidak kosong, maka filter berdasarkan pengarang
+            const matchAuthor = authorFilter ? book.pengarang === authorFilter : true;
+            return matchSearch && matchAuthor;
+        }
+    );
+
+    const paginatedBooks = filteredBooks.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    );
+
+    // Pagination
     const totalPages = Math.ceil(
         books.filter(
             (book) =>
@@ -38,6 +63,7 @@ export default function BooksIndex() {
                 book.no_rak?.toLowerCase().includes(search.toLowerCase())
         ).length / itemsPerPage
     );
+
 
     const navigate = useNavigate();
 
@@ -159,18 +185,6 @@ export default function BooksIndex() {
 
     const totalStock = books.reduce((sum, book) => sum + (parseInt(book.stok) || 0), 0);
 
-    const filteredBooks = books.filter(
-        (book) =>
-            book.judul?.toLowerCase().includes(search.toLowerCase()) ||
-            book.pengarang?.toLowerCase().includes(search.toLowerCase()) ||
-            book.no_rak?.toLowerCase().includes(search.toLowerCase())
-    );
-
-    const paginatedBooks = filteredBooks.slice(
-        (currentPage - 1) * itemsPerPage,
-        currentPage * itemsPerPage
-    );
-
     return (
         <div className="p-6 min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-700">
             {/* Header */}
@@ -179,7 +193,7 @@ export default function BooksIndex() {
                     <span className="inline-flex items-center justify-center h-14 w-14 rounded-full shadow-lg bg-gradient-to-br from-blue-700 via-blue-600 to-blue-400">
                         <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <circle cx="12" cy="12" r="10" strokeWidth="2" stroke="currentColor" fill="#2563eb" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h8M8 16h8M8 8h8" stroke="#fff"/>
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h8M8 16h8M8 8h8" stroke="#fff" />
                         </svg>
                     </span>
                     <div>
@@ -255,7 +269,36 @@ export default function BooksIndex() {
                                 <span className="bg-blue-700 px-2 py-1 rounded-full">Title</span>
                             </th>
                             <th className="w-1/3 px-2 py-3 text-xs font-bold text-blue-200 uppercase tracking-wider text-center whitespace-nowrap">
-                                <span className="bg-blue-700 px-2 py-1 rounded-full">Author</span>
+                                <div className="relative group inline-block">
+                                    <div className="flex items-center space-x-1 cursor-pointer bg-blue-700 px-2 py-1 rounded-full">
+                                        <span>Author</span>
+                                        <svg
+                                            className="w-3 h-3 transition-transform duration-200 group-hover:rotate-180"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                            xmlns="http://www.w3.org/2000/svg"
+                                        >
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                    </div>
+
+                                    {/* Dropdown menu with animation */}
+                                    <div className="absolute z-10 hidden group-hover:block pt-1 w-full min-w-[150px]">
+                                        <div className="animate-fadeIn origin-top">
+                                            <select
+                                                className="w-full px-2 py-1 rounded bg-gray-900 border border-blue-700 text-blue-100 text-xs shadow-lg"
+                                                value={authorFilter}
+                                                onChange={e => setAuthorFilter(e.target.value)}
+                                            >
+                                                <option value="">All</option>
+                                                {uniqueAuthors.map((author, idx) => (
+                                                    <option key={idx} value={author}>{author}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
                             </th>
                             <th className="w-1/6 px-2 py-3 text-xs font-bold text-blue-200 uppercase tracking-wider text-center whitespace-nowrap">
                                 <span className="bg-blue-700 px-2 py-1 rounded-full">Stock</span>
@@ -356,11 +399,10 @@ export default function BooksIndex() {
                     {[...Array(totalPages)].map((_, idx) => (
                         <button
                             key={idx}
-                            className={`px-3 py-1 rounded-lg font-bold transition border-2 ${
-                                currentPage === idx + 1
-                                    ? "bg-gradient-to-r from-blue-700 via-blue-800 to-blue-900 text-white border-blue-700 shadow-lg scale-105"
-                                    : "bg-gray-800 text-blue-200 border-gray-700 hover:bg-blue-900 hover:text-white"
-                            }`}
+                            className={`px-3 py-1 rounded-lg font-bold transition border-2 ${currentPage === idx + 1
+                                ? "bg-gradient-to-r from-blue-700 via-blue-800 to-blue-900 text-white border-blue-700 shadow-lg scale-105"
+                                : "bg-gray-800 text-blue-200 border-gray-700 hover:bg-blue-900 hover:text-white"
+                                }`}
                             onClick={() => setCurrentPage(idx + 1)}
                         >
                             {idx + 1}
